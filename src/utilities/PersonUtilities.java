@@ -24,7 +24,7 @@ import swise.objects.PopSynth;
 
 public class PersonUtilities {
 	
-	public static synchronized ArrayList<Person> setupPersonsAtRandom(GeomVectorField buildings, Schedule schedule, SimState world, 
+	public static synchronized ArrayList<Person> setupPersonsAtRandom(GeomVectorField buildings, Schedule schedule, TakamatsuSim world, 
 			GeometryFactory fa){
 		
 		ArrayList <Person> agents = new ArrayList <Person> ();
@@ -39,11 +39,13 @@ public class PersonUtilities {
 				o = myBuildings.get(world.random.nextInt(myBuildingsSize));
 				mg = (MasonGeometry) o;
 			}
-			Point myPoint = mg.geometry.getCentroid();
-			Coordinate myC = new Coordinate(myPoint.getX(), myPoint.getY());
-			
+			//Point myPoint = mg.geometry.getCentroid();
+			//Coordinate myC = new Coordinate(myPoint.getX(), myPoint.getY());
+			Coordinate myC = (Coordinate) mg.geometry.getCoordinate().clone();
 			Person a = new Person("Person"+i,myC,myC,myC, world);
 			agents.add(a);
+			
+			world.schedule.scheduleOnce(a);
 		}
 		
 		return agents;
@@ -55,7 +57,7 @@ public class PersonUtilities {
 	 * 
 	 * @param agentsFilename - the file in which the agent records are stored
 	 */
-	public synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, SimState world, MediaInstance media){
+	public synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world, MediaInstance media){
 		try {
 			ArrayList<Person> agents = new ArrayList <Person> ();
 			

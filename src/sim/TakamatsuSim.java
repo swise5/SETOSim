@@ -48,6 +48,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import ec.util.MersenneTwisterFast;
 import objects.Person;
@@ -103,11 +104,11 @@ public class TakamatsuSim extends SimState {
 	public GeomVectorField buildingLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField agentsLayer = new GeomVectorField(grid_width, grid_height);
 	
-	/*
+	
 	public GeomVectorField networkLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField networkEdgeLayer = new GeomVectorField(grid_width, grid_height);	
 	public GeomVectorField majorRoadNodesLayer = new GeomVectorField(grid_width, grid_height);
-	public GeomVectorField evacuationAreas = new GeomVectorField(grid_width, grid_height);
+/*	public GeomVectorField evacuationAreas = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField fireLayer = new GeomVectorField(grid_width, grid_height);
 	public ArrayList <GeomVectorField> firePoints = new ArrayList <GeomVectorField>();
 	*/
@@ -174,7 +175,7 @@ public class TakamatsuSim extends SimState {
 		
 			InputCleaning.readInVectorLayer(baseLayer, dirName + "water.shp", "water", new Bag());
 			InputCleaning.readInVectorLayer(buildingLayer, dirName + "buildings.shp", "buildings", new Bag());
-			InputCleaning.readInVectorLayer(roadLayer, dirName + "roadsOutline.shp", "road network", new Bag());
+			InputCleaning.readInVectorLayer(roadLayer, dirName + "roadsCleanSubset.shp", "road network", new Bag());
 			
 			//////////////////////////////////////////////
 			////////////////// CLEANUP ///////////////////
@@ -184,28 +185,17 @@ public class TakamatsuSim extends SimState {
 			
 			MBR = buildingLayer.getMBR();
 			//MBR.init(501370, 521370, 4292000, 4312000);
-			baseLayer.setMBR(MBR);
 
 			this.grid_width = buildingLayer.fieldWidth;
 			this.grid_height = buildingLayer.fieldHeight;
 
 			//evacuationAreas.setMBR(MBR);
-
-			baseLayer.setMBR(MBR);
-			buildingLayer.setMBR(MBR);
-			roadLayer.setMBR(MBR);
-			agentsLayer.setMBR(MBR);
 			
 			heatmap = new GeomGridField();
 			heatmap.setMBR(MBR);
 			heatmap.setGrid(new IntGrid2D((int)(MBR.getWidth() / 100), (int)(MBR.getHeight() / 100), 0));
 
 			
-			agents.addAll(PersonUtilities.setupPersonsAtRandom(buildingLayer, schedule, this, fa));
-			for(Person p: agents){
-				agentsLayer.addGeometry(p);
-			}
-/*
 			// clean up the road network
 			
 			System.out.print("Cleaning the road network...");
@@ -232,7 +222,7 @@ public class TakamatsuSim extends SimState {
 					roadLayer.addGeometry((MasonGeometry) edge.info);
 					((MasonGeometry)edge.info).addAttribute("ListEdge", edge);
 					
-					String type = ((MasonGeometry)edge.info).getStringAttribute("TYPE");
+					String type = ((MasonGeometry)edge.info).getStringAttribute("highway");
 					if(type.equals("motorway") || type.equals("primary") || type.equals("trunk"))
 						potential_terminus = true;
 				}
@@ -244,19 +234,12 @@ public class TakamatsuSim extends SimState {
 
 			}
 
-			// reset MBRS in case it got messed up during all the manipulation
-			roadLayer.setMBR(MBR);			
-			networkLayer.setMBR(MBR);
-			networkEdgeLayer.setMBR(MBR);
-			roadLayer.setMBR(MBR);
-			
-			System.out.println("done");
 
 			/////////////////////
 			///////// Clean up roads for Persons to use ///////////
 			/////////////////////
 						
-			Network majorRoads = extractMajorRoads();
+			Network majorRoads = RoadNetworkUtilities.extractMajorRoads(roads);
 			RoadNetworkUtilities.testNetworkForIssues(majorRoads);
 
 			// assemble list of secondary versus local roads
@@ -282,12 +265,30 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
+			agents.addAll(PersonUtilities.setupPersonsAtRandom(networkLayer, schedule, this, fa));
+			for(Person p: agents){
+				agentsLayer.addGeometry(p);
+			}
+
+
+			// reset MBRS in case it got messed up during all the manipulation
+			baseLayer.setMBR(MBR);
+			buildingLayer.setMBR(MBR);
+			roadLayer.setMBR(MBR);			
+			networkLayer.setMBR(MBR);
+			networkEdgeLayer.setMBR(MBR);
+			majorRoadNodesLayer.setMBR(MBR);
+			agentsLayer.setMBR(MBR);
+			
+			System.out.println("done");
+
+			
 			//////////////////////////////////////////////
 			////////////////// AGENTS ///////////////////
 			//////////////////////////////////////////////
 
 			// set up the agents in the simulation
-			setupPersonsFromFile(dirName + agentFilename);
+/*			setupPersonsFromFile(dirName + agentFilename);
 			agentsLayer.setMBR(MBR);
 			
 /*			// for each of the Persons, set up relevant, environment-specific information
@@ -612,7 +613,28 @@ public class TakamatsuSim extends SimState {
 		this.agentsLayer.setMBR(MBR);
 		this.roadLayer.setMBR(MBR);
 	}
+
 	
+	public Coordinate snapPointToRoadNetwork(Coordinate c) {
+		ListEdge myEdge = null;
+		double resolution = this.resolution;
+
+		if (networkEdgeLayer.getGeometries().size() == 0)
+			return null;
+
+		while (myEdge == null && resolution < Double.MAX_VALUE) {
+			myEdge = RoadNetworkUtilities.getClosestEdge(c, resolution, networkEdgeLayer, fa);
+			resolution *= 10;
+		}
+		if (resolution == Double.MAX_VALUE)
+			return null;
+
+		LengthIndexedLine closestLine = new LengthIndexedLine(
+				(LineString) (((MasonGeometry) myEdge.info).getGeometry()));
+		double myIndex = closestLine.indexOf(c);
+		return closestLine.extractPoint(myIndex);
+	}
+
 	/**
 	 * To run the model without visualization
 	 */

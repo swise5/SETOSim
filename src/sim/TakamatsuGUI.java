@@ -92,7 +92,7 @@ public class TakamatsuGUI extends GUIState {
 		buildings.setImmutableField(true);
 		
 		agents.setField(world.agentsLayer);
-		agents.setPortrayalForAll( new GeomPortrayal(new Color(255,0,0,55), true));
+		agents.setPortrayalForAll( new GeomPortrayal(new Color(255,0,0,55), 5, true));
 		
 /*		network.setField( world.agentsLayer, world.agentSocialNetwork );
 		network.setImmutableField(false);

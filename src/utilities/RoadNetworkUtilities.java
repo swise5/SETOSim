@@ -179,7 +179,7 @@ public class RoadNetworkUtilities {
 			for(Object p: roads.getEdgesOut(n)){
 				
 				sim.field.network.Edge e = (sim.field.network.Edge) p;
-				String type = ((MasonGeometry)e.info).getStringAttribute("class");
+				String type = ((MasonGeometry)e.info).getStringAttribute("highway");
 				
 				// save major roads
 				if(type.equals("major"))
