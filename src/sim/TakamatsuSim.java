@@ -103,7 +103,7 @@ public class TakamatsuSim extends SimState {
 	public GeomVectorField roadLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField buildingLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField agentsLayer = new GeomVectorField(grid_width, grid_height);
-	
+	public GeomVectorField shelterLayer = new GeomVectorField(grid_width, grid_height);
 	
 	public GeomVectorField networkLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField networkEdgeLayer = new GeomVectorField(grid_width, grid_height);	
@@ -176,6 +176,7 @@ public class TakamatsuSim extends SimState {
 			InputCleaning.readInVectorLayer(baseLayer, dirName + "water.shp", "water", new Bag());
 			InputCleaning.readInVectorLayer(buildingLayer, dirName + "buildings.shp", "buildings", new Bag());
 			InputCleaning.readInVectorLayer(roadLayer, dirName + "roadsCleanSubset.shp", "road network", new Bag());
+			InputCleaning.readInVectorLayer(shelterLayer, dirName + "shelters.shp", "shelters", new Bag());
 			
 			//////////////////////////////////////////////
 			////////////////// CLEANUP ///////////////////
@@ -279,6 +280,7 @@ public class TakamatsuSim extends SimState {
 			networkEdgeLayer.setMBR(MBR);
 			majorRoadNodesLayer.setMBR(MBR);
 			agentsLayer.setMBR(MBR);
+			shelterLayer.setMBR(MBR);
 			
 			System.out.println("done");
 
@@ -425,6 +427,9 @@ public class TakamatsuSim extends SimState {
 	 */
 	public void finish(){
 		super.finish();
+		for(Person p: agents){
+			System.out.print(p.getEvacuatingTime() + "\t");
+		}
 /*		try{
 			
 			// clean up and finish recording everything

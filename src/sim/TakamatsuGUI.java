@@ -45,6 +45,9 @@ public class TakamatsuGUI extends GUIState {
 	private GeomVectorFieldPortrayal roads = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal buildings = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal agents = new GeomVectorFieldPortrayal();
+	private GeomVectorFieldPortrayal shelters = new GeomVectorFieldPortrayal();
+	
+	
 	private GeomNetworkFieldPortrayal network = new GeomNetworkFieldPortrayal();
 	private FastValueGridPortrayal2D heatmap = new FastValueGridPortrayal2D();	
 		
@@ -94,6 +97,9 @@ public class TakamatsuGUI extends GUIState {
 		agents.setField(world.agentsLayer);
 		agents.setPortrayalForAll( new GeomPortrayal(new Color(255,0,0,55), 5, true));
 		
+		shelters.setField(world.shelterLayer);
+		shelters.setPortrayalForAll(new GeomPortrayal(new Color(0,200,0,40), true));
+		
 /*		network.setField( world.agentsLayer, world.agentSocialNetwork );
 		network.setImmutableField(false);
 		network.setPortrayalForAll(new GeomPortrayal(new Color(200,200,50), false));
@@ -120,6 +126,7 @@ public class TakamatsuGUI extends GUIState {
 		display.attach(heatmap, "Heatmap", false);
 		display.attach(map, "Landscape");
 		display.attach(buildings, "Buildings");
+		display.attach(shelters, "Shelters");
 		display.attach(roads, "Roads");
 		//display.attach(network, "Network", false);
 		display.attach(agents, "Agents");

@@ -31,7 +31,10 @@ public class Person extends TrafficAgent implements Communicator {
 	Coordinate targetDestination = null;
 	GeomVectorField space = null;
 	double enteredRoadSegment = -1;
-	double minSpeed = 5;
+	double minSpeed = 7;
+	
+	boolean evacuating = false;
+	double evacuatingTime = 0;
 
 	
 	public Person(String id, Coordinate position, Coordinate home, Coordinate work, TakamatsuSim world){		
@@ -70,7 +73,8 @@ public class Person extends TrafficAgent implements Communicator {
 		if(work != null)
 			this.work = (Coordinate)work.clone();
 		this.world = world;
-		speed = 5;
+		this.speed = minSpeed;
+		if(world.random.nextDouble() < .1) this.minSpeed = 4;
 		
 		// add it to the space
 		this.space = world.agentsLayer;
@@ -222,7 +226,7 @@ public class Person extends TrafficAgent implements Communicator {
 			// Each car has a certain amount of space: wants to preserve a following distance. 
 			// If the amount of following distance is less than 20 meters (~ 6 car lengths) it'll slow
 			// proportionately
-			double val = Math.min(1, ((ListEdge)edge).lengthPerElement() / 20); 
+			double val = Math.min(1, ((ListEdge)edge).lengthPerElement() / 30); 
 			speed = Math.max( mySpeed * val, minSpeed);
 		}
 		else
@@ -269,6 +273,35 @@ public class Person extends TrafficAgent implements Communicator {
 		return time;
 	}
 
+	public double getEvacuatingTime(){ return evacuatingTime; }
+	
+	void testEvacuating(double myRand){
+		if(evacuating) {
+			evacuatingTime += 1;
+			return;
+		}
+		
+		else if(myRand < .05){
+			evacuating = true;
+			double myDistance = Double.MAX_VALUE;
+			MasonGeometry myShelter = null;
+			for(Object o: world.shelterLayer.getGeometries()){
+				double possibleDist = geometry.distance(((MasonGeometry)o).geometry);
+				if(possibleDist < myDistance){
+					myDistance = possibleDist;
+					myShelter = (MasonGeometry) o;
+				}
+			}
+			if(myShelter == null){
+				System.out.println("what!? No shelters!!!");
+			}
+			targetDestination = RoadNetworkUtilities.getClosestGeoNode(myShelter.geometry.getCoordinate(), 
+					world.resolution, world.networkLayer, 
+					world.networkEdgeLayer, world.fa).geometry.getCoordinate();
+			path = null;
+		}
+	}
+	
 	/**
 	 * Assuming the Person is not interrupted by intervening events, they are activated
 	 * roughly when it is time to begin moving toward the next Task
@@ -278,27 +311,23 @@ public class Person extends TrafficAgent implements Communicator {
 		
 		double time = state.schedule.getTime(); // find the current time
 
+		// random chance of beginning to evacuate
+		testEvacuating(state.random.nextDouble());
+		
 		// if the agent is already in transit, continue moving
 		if(targetDestination != null){
 			if(path == null){
 				headFor(targetDestination);
 			}
 			this.navigate(world.resolution);
-			
-/*			// if the Person has not yet completed the journey, schedule the Person to continue the journey
-			// in the next time step
-			if(path != null){
-				world.schedule.scheduleOnce(time + 1, this);
-				return;
-			}
-*/		}
+		}
 		else {
 			Bag ns = world.roadNodes;
 			targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
 		}
 
-		// backup if all else has failed
-		world.schedule.scheduleOnce(time+1, this);
+		if(!evacuating || path != null)
+			world.schedule.scheduleOnce(time+1, this);
 	}
 	
 	public double estimateTravelTimeTo(Geometry g){

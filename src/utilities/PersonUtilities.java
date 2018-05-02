@@ -31,7 +31,7 @@ public class PersonUtilities {
 		Bag myBuildings = buildings.getGeometries();
 		int myBuildingsSize = myBuildings.numObjs;
 		
-		for(int i = 0; i < 10000; i++){
+		for(int i = 0; i < 1000; i++){
 			
 			Object o = myBuildings.get(world.random.nextInt(myBuildingsSize));
 			MasonGeometry mg = (MasonGeometry) o;
