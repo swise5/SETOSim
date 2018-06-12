@@ -82,7 +82,7 @@ public class TakamatsuSim extends SimState {
 	
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/";
+	String dirName = "/Users/swise/Google Drive/GTD-projects/ROR/Hitomi_Nakanishi/data/";
 	
 	public static String communicatorFilename = "communicatorEvents.txt";
 	public static String agentFilename = "synthPopulationHOUSEHOLD.txt";
