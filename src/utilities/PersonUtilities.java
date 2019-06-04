@@ -8,12 +8,14 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import com.vividsolutions.jts.geom.Point;
+
+import myobjects.Person;
+import mysim.TakamatsuSim;
+import mysim.TakamatsuSim.MediaInstance;
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import objects.Person;
-import sim.TakamatsuSim;
-import sim.TakamatsuSim.MediaInstance;
 import sim.engine.Schedule;
 import sim.engine.SimState;
 import sim.engine.Steppable;
