@@ -91,7 +91,7 @@ public class TakamatsuGUI extends GUIState {
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(100,100,100), false));
 		
 		buildings.setField(world.buildingLayer);
-		buildings.setPortrayalForAll(new GeomPortrayal(new Color(150,150,150), true));
+		buildings.setPortrayalForAll(new GeomPortrayal(new Color(190,190,190), true));
 		buildings.setImmutableField(true);
 		
 		agents.setField(world.agentsLayer);
@@ -107,7 +107,7 @@ public class TakamatsuGUI extends GUIState {
 		network.setPortrayalForAll(new GeomPortrayal(new Color(200,200,50), false));
 */
 		heatmap.setField(world.heatmap.getGrid()); 
-		heatmap.setMap(new SimpleColorMap(0, 10, Color.black, Color.red));
+		heatmap.setMap(new SimpleColorMap(0, 50, Color.black, Color.red));
 		
 		// reset stuff
 		// reschedule the displayer

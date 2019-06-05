@@ -78,25 +78,25 @@ public class TakamatsuSim extends SimState {
 	double comfortDistance = -1;
 	double observationDistance = -1;
 	double decayParam = -1;
-*/	public static double speed_pedestrian = 7;
-	public static double speed_vehicle = 40;
+*/	public static double speed_pedestrian = 1.5 * 60;
+	public static double speed_vehicle = 4 * 60;
 
 	
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Google Drive/GTD-projects/ROR/Hitomi_Nakanishi/data/";
+	String dirName = "/Users/swise/Projects/hitomi/data/";//"/Users/swise/Google Drive/GTD-projects/ROR/Hitomi_Nakanishi/data/";
 	
 	public static String communicatorFilename = "communicatorEvents.txt";
 	public static String agentFilename = "synthPopulationHOUSEHOLD.txt";
 
-/*	String record_speeds_filename = "speeds/speeds", 
+	String record_speeds_filename = "speeds/speeds", 
 			record_sentiment_filename = "sentiments/sentiment",
 			record_heatmap_filename = "heatmaps/heatmap",
 			record_info_filename = "infos/info";
 
 	BufferedWriter record_speeds, record_sentiment, record_heatmap;
 	public BufferedWriter record_info;
-*/
+
 	//// END Data Sources ////////////////////////
 	
 	/////////////// Containers ///////////////////////////////////////
@@ -118,6 +118,7 @@ public class TakamatsuSim extends SimState {
 	ArrayList <ListEdge> badRoads = null;
 	
 	public GeomGridField heatmap = new GeomGridField();
+	public HashMap <String, Integer> roadUsageRecord = new HashMap <String, Integer> ();
 
 	public GeomVectorField hi_roadLayer = new GeomVectorField(grid_width, grid_height);
 	public Network hiNetwork = new Network();
@@ -200,7 +201,7 @@ public class TakamatsuSim extends SimState {
 			
 			heatmap = new GeomGridField();
 			heatmap.setMBR(MBR);
-			heatmap.setGrid(new IntGrid2D((int)(MBR.getWidth() / 100), (int)(MBR.getHeight() / 100), 0));
+			heatmap.setGrid(new IntGrid2D((int)(MBR.getWidth() / 10), (int)(MBR.getHeight() / 10), 0));
 
 			
 			// clean up the road network
@@ -294,6 +295,7 @@ public class TakamatsuSim extends SimState {
 			majorRoadNodesLayer.setMBR(MBR);
 			agentsLayer.setMBR(MBR);
 			shelterLayer.setMBR(MBR);
+			heatmap.setMBR(MBR);
 			
 			System.out.println("done");
 
@@ -443,18 +445,16 @@ public class TakamatsuSim extends SimState {
 		for(Person p: agents){
 			System.out.print(p.getEvacuatingTime() + "\t");
 		}
-/*		try{
-			
-			// clean up and finish recording everything
-			
-			this.record_sentiment.close();
-			this.record_speeds.close();
+		try{
 			
 			// create part of the title to record all the paramters used in this simulation
-			String mySettings = communication_success_prob + "_" + contact_success_prob + "_" + tweet_prob + "_" + 
-					retweet_prob + "_" + comfortDistance + "_" + observationDistance + "_" + decayParam + "_" + speed + "_";
+		//	String mySettings = communication_success_prob + "_" + contact_success_prob + "_" + tweet_prob + "_" + 
+		//			retweet_prob + "_" + comfortDistance + "_" + observationDistance + "_" + decayParam + "_" + speed + "_";
+			String mySettings = "dummy";
 
 			// SAVE THE HEATMAP
+			String blahhhh = dirName + record_heatmap_filename + mySettings + mySeed + ".txt";
+			System.out.println(blahhhh);
 			record_heatmap = new BufferedWriter(new FileWriter(dirName + record_heatmap_filename + mySettings + mySeed + ".txt"));
 			IntGrid2D myHeatmap = ((IntGrid2D) this.heatmap.getGrid());
 
@@ -467,16 +467,22 @@ public class TakamatsuSim extends SimState {
 				}
 				record_heatmap.write(output + "\n");
 			}
+			
+			record_heatmap.write("\n\n\n");
+			for(String s: roadUsageRecord.keySet()){
+				record_heatmap.write(s + "\t" + roadUsageRecord.get(s) + "\n");
+			}
 			record_heatmap.close();
 
 			// print a record out
 			System.out.println(this.mySeed + "\t" + this.numDied + "\t" + this.numEvacuated);
 			
 			// SAVE ALL AGENT INFO
-			
+			record_info = new BufferedWriter(new FileWriter(dirName + record_info_filename + mySettings + mySeed + ".txt"));
+
 			for(Person a: agents){
-				String myID = a.toString();
-				for(Object o: a.knowledge.keySet()){
+				String myID = a.getMyID();
+/*				for(Object o: a.knowledge.keySet()){
 					Information i = a.knowledge.get(o);
 					Object source = i.getSource();
 					String sourceStr;
@@ -491,15 +497,19 @@ public class TakamatsuSim extends SimState {
 						record_info.write(myID + "\t" + sourceStr + "\t" + i.getTime() + "\t" + o.toString() + "\n");
 					} catch (IOException e) {e.printStackTrace();}
 				}
-
+*/
+				record_info.write(myID + "\t" + a.getEvacuatingTime() + "\t" + "\n");
 			}
 
 			this.record_info.close();
 
+			for(Object o: this.roadLayer.getGeometries()){
+				MasonGeometry mg = (MasonGeometry) o;
+				String blahh = "2";
+			}
 		} catch (IOException e){
 			e.printStackTrace();
 		}
-		*/
 	}
 	
 
@@ -633,6 +643,19 @@ public class TakamatsuSim extends SimState {
 	}
 
 	
+	/**
+	 * Convenient method for incrementing the heatmap
+	 * @param geom - the geometry of the object that is impacting the heatmap
+	 */
+	public void incrementHeatmap(Geometry geom){
+		Point p = geom.getCentroid();
+		
+		int x = (int)(heatmap.getGrid().getWidth() * (1 - (MBR.getMaxX() - p.getX())/(MBR.getMaxX() - MBR.getMinX()))), 
+				y = (int)(heatmap.getGrid().getHeight()*(MBR.getMaxY() - p.getY())/(MBR.getMaxY() - MBR.getMinY()));
+		if(x >= 0 && y >= 0 && x < heatmap.getGrid().getWidth() && y < heatmap.getGrid().getHeight())
+			((IntGrid2D) this.heatmap.getGrid()).field[x][y]++;
+	}
+	
 	public Coordinate snapPointToRoadNetwork(Coordinate c) {
 		ListEdge myEdge = null;
 		double resolution = this.resolution;
@@ -691,4 +714,13 @@ public class TakamatsuSim extends SimState {
 
 		System.exit(0);
     }
+
+
+	public void updateRoadUseage(String usedRoad) {
+		Integer i = roadUsageRecord.get(usedRoad);
+		if(i == null)
+			roadUsageRecord.put(usedRoad, 1);
+		else
+			roadUsageRecord.put(usedRoad, i + 1);
+	}
 }

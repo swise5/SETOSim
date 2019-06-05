@@ -28,6 +28,7 @@ public class Person extends TrafficAgent implements Communicator {
 	
 	Coordinate home, work;
 	TakamatsuSim world;
+	String myID;
 
 	// movement utilities
 	Coordinate targetDestination = null;
@@ -38,7 +39,7 @@ public class Person extends TrafficAgent implements Communicator {
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	
 	boolean evacuating = false;
-	double evacuatingTime = 0;
+	double evacuatingTime = -1;
 	Shelter targetShelter = null;
 
 	
@@ -52,6 +53,7 @@ public class Person extends TrafficAgent implements Communicator {
 
 		super((new GeometryFactory()).createPoint(position));
 		
+		this.myID = id;
 		
 		if(position != null) {
 			this.home = (Coordinate)position.clone();
@@ -90,6 +92,139 @@ public class Person extends TrafficAgent implements Communicator {
 		this.isMovable = true;
 	}
 	
+
+
+	/**
+	 * Assuming the Person is not interrupted by intervening events, they are activated
+	 * roughly when it is time to begin moving toward the next Task
+	 */
+	@Override
+	public void step(SimState state) {
+		
+		// find the current time
+		double time = state.schedule.getTime();
+		world.incrementHeatmap(this.geometry);
+
+		// either update the evacuation time or possibly begin evacuating
+		if(!evacuating && state.random.nextDouble() < .05){
+			beginEvacuating(time);
+			state.schedule.scheduleOnce(time + state.random.nextInt(5) * 5 + 10, this);
+			return;
+		}
+		
+		// if the agent is already in transit, continue moving
+		if(targetDestination != null){
+			if(path == null){
+				headFor(targetDestination);
+			}
+			this.navigate(world.resolution);
+		}
+		else {
+			Bag ns = world.roadNodes;
+			targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
+		}
+
+		// the Person has arrived at a Shelter - try to enter it!
+		if(evacuating && path == null){
+			
+			// if there is room, successfully enter the Shelter
+			if(targetShelter.roomForN(1)){
+				targetShelter.addNewPerson(this);
+				
+				// remove them from the road network they're on
+				if(edge.getClass().equals(ListEdge.class))
+					((ListEdge)edge).removeElement(this);
+				
+				if(time - evacuatingTime <= 10)
+					System.out.println("wut");
+				// set the final evacuating time!
+				evacuatingTime = time - evacuatingTime;
+				
+				return;
+			}
+			
+			// otherwise, learn that the Shelter is full and consider going to another!
+			else{
+				fullShelters.add(targetShelter);
+				System.out.println("Shelter is full! " + myID);
+				beginEvacuating(evacuatingTime); // force a reassessment
+				if(targetShelter == null){ // just stay on the road and cry pitiably, I guess??
+					evacuatingTime = time - evacuatingTime;
+					return;
+				}
+			}
+		}
+		
+		// check if the person has arrived at their destination
+		else if(path == null && time % 1440 <  960){ // only set a new target if it's during the day - if it's at night, wait
+			if(targetDestination != null && targetDestination.distance(this.geometry.getCoordinate()) < world.resolution){
+				Bag ns = world.roadNodes;
+				targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
+			}
+		}
+		
+		world.schedule.scheduleOnce(time+1, this);
+	}
+
+	public int navigate(double resolution){
+		if(path != null){
+			double time = 1;//speed;
+			while(path != null && time > 0){
+				time = move(time, speed, resolution);
+				if(segment != null)
+					world.updateRoadUseage(((MasonGeometry)edge.info).getStringAttribute("myid"));
+			}
+			
+			if(segment != null)
+				updateLoc(segment.extractPoint(currentIndex));				
+
+			if(time < 0){
+				return -1;
+			}
+			else
+				return 1;
+		}
+		return -1;
+	}
+	
+	/**
+	 * 
+	 * @param myTime - the time at which the evacuation effort started
+	 */
+	void beginEvacuating(double myTime){
+		evacuatingTime = myTime; // save it here as a record
+		evacuating = true;
+		double myDistance = Double.MAX_VALUE;
+		MasonGeometry myShelter = null;
+		for(Object o: world.shelterLayer.getGeometries()){
+			Shelter s = (Shelter) o;
+			if(fullShelters.contains(s)) continue;
+			double possibleDist = geometry.distance(s.getEntrance()) / (Math.log(s.getArea()) * Math.pow(speed, 2));
+			if(possibleDist < myDistance){
+				myDistance = possibleDist;
+				myShelter = s;
+			}
+		}
+		
+		// make sure that such a place exists!
+		if(myShelter == null){
+			System.out.println("No shelters with available space!");
+			targetShelter = null;
+			return;
+		}
+		targetDestination = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
+				world.resolution, world.networkLayer, 
+				world.networkEdgeLayer, world.fa).geometry.getCoordinate();
+		path = null;
+		targetShelter = (Shelter)myShelter;
+	}
+	
+	
+	public double estimateTravelTimeTo(Geometry g){
+		return(g.distance(this.geometry) / speed);
+	}
+	
+	
 	public void addContact(Person contact, int weight){
 	}
 	
@@ -106,268 +241,8 @@ public class Person extends TrafficAgent implements Communicator {
 		// TODO Auto-generated method stub
 		
 	}
-	
-	
-	/**
-	 * 
-	 * @param resolution
-	 * @return 1 for success, -1 for failure
-	 */	
-	public int navigate(double resolution){
-		myLastSpeed = -1;
-		
-		if(path != null){
-			double time = 1;//speed;
-			while(path != null && time > 0){
-				time = move(time, speed, resolution);
-			}
-			
-			if(segment != null)
-				updateLoc(segment.extractPoint(currentIndex));				
-
-			if(time < 0){
-				return -1;
-			}
-			else
-				return 1;
-		}
-		return -1;		
-	}
-	
-	/**
-	 * 
-	 * @param time - a positive amount of time, representing the period of time agents 
-	 * 				are allocated for movement
-	 * @param obstacles - set of spaces which are obstacles to the agent
-	 * @return the amount of time left after moving, negated if the movement failed
-	 */
-	protected double move(double time, double mySpeed, double resolution){
-		
-		// if we're at the end of the edge and we have more edges, move onto the next edge
-		if(arrived() ){
-			
-			// clean up any edge we leave
-			if(edge != null && edge.getClass().equals(ListEdge.class)){
-				((ListEdge)edge).removeElement(this);
-				
-				// update the edge with how long you've spent on it
-			//	double durationOnSegment = ((MasonGeometry)edge.info).getDoubleAttribute("MikeSim_timeOnRoad");
-				
-			//	if(enteredRoadSegment > 0) // if you began on the edge and never really entered it, don't consider this
-			//		((MasonGeometry)edge.info).addDoubleAttribute("MikeSim_timeOnRoad", 
-			//			durationOnSegment + world.schedule.getTime() - enteredRoadSegment);
-			}
-
-			// if we have arrived and there is no other edge in the path, we have finished our journey: 
-			// reset the path and return the remaining time
-			if(goalPoint == null && path.size() == 0 && (currentIndex <= startIndex || currentIndex >= endIndex )){
-				path = null;
-				return time;
-			}
-			
-			// make sure that there is another edge in the path
-			if(path.size() > 0) { 
-
-				// take the next edge
-				Edge newEdge = path.remove(path.size() - 1);				
-				edge = newEdge;
-
-				// make sure it's open
-				// if it's not, return an error!
-		/*		if(((MasonGeometry)newEdge.info).getStringAttribute("open").equals("CLOSED")){
-					updateLoc(node.geometry.getCoordinate());
-					edge = newEdge;
-					path = null;
-					return -1;
-				}				
-*/
-				// change our positional node to be the Node toward which we're moving
-				node = (GeoNode) edge.getOtherNode(node);
-				
-				// format the edge's geometry so that we can move along it conveniently
-				LineString ls = (LineString)((MasonGeometry)edge.info).geometry;
-
-				// set up the segment and coordinates
-				segment = new LengthIndexedLine(ls);
-				startIndex = segment.getStartIndex();
-				endIndex = segment.getEndIndex();
-				currentIndex = segment.project(this.geometry.getCoordinate());
-				
-				
-				// if that was the last edge and we have a goal point, resize the expanse
-				if(path.size() == 0 && goalPoint != null){ 
-					double goalIndex = segment.project(goalPoint);
-					if(currentIndex < goalIndex)
-						endIndex = goalIndex;
-					else
-						startIndex = goalIndex;
-				}
-				
-				// make sure we're moving in the correct direction along the Edge
-				if(node.equals(edge.to())){
-					direction = 1;
-					currentIndex = Math.max(currentIndex, startIndex);
-				} else {
-					direction = -1;
-					currentIndex = Math.min(currentIndex, endIndex);
-				}
-
-				if(edge.getClass().equals(ListEdge.class)){
-					((ListEdge)edge).addElement(this);
-				//	int numUsages = ((MasonGeometry)edge.info).getIntegerAttribute("MikeSim_useages");
-				//	((MasonGeometry)edge.info).addIntegerAttribute("MikeSim_useages", numUsages + 1);
-
-					enteredRoadSegment = world.schedule.getTime();
-				}
-
-			}
-						
-
-		}
-		
-		// otherwise, we're on an Edge and moving forward!
-
-		// set our speed
-		double speed;
-		if(edge != null && edge.getClass().equals(ListEdge.class)){
-			
-			// Each car has a certain amount of space: wants to preserve a following distance. 
-			// If the amount of following distance is less than 20 meters (~ 6 car lengths) it'll slow
-			// proportionately
-			double val = ((ListEdge)edge).lengthPerElement() / 5;
-			if(val < 10 && super.speed == TakamatsuSim.speed_vehicle) {
-				speed = mySpeed / val;//minSpeed);
-				if(speed < 1){ // if my speed is super low, set it to some baseline to keep traffic moving at all
-					int myIndexInEdge =((ListEdge)edge).returnMyIndex(this);
-					if(myIndexInEdge == 0 || myIndexInEdge == ((ListEdge)edge).numElementsOnListEdge() - 1)
-						speed = super.speed; // if I'm at the head or end of the line, move ahead at a fairly normal speed
-				}
-			}
-			else
-				speed = super.speed;
-			
-		}
-		else
-			speed = mySpeed;
-
-		myLastSpeed = speed;
-		
-		// construct a new current index which reflects the speed and direction of travel
-		double proposedCurrentIndex = currentIndex + time * speed * direction;
-		
-		// great! It works! Move along!
-		currentIndex = proposedCurrentIndex;
-				
-		if( direction < 0 ){
-			if(currentIndex < startIndex){
-				time = (startIndex - currentIndex) / speed; // convert back to time
-				currentIndex = startIndex;
-			}
-			else
-				time = 0;
-		}
-		else if(currentIndex > endIndex){
-			time = (currentIndex - endIndex) / speed; // convert back to time
-			currentIndex = endIndex;
-		}
-		else
-			time = 0;
-
-		// don't overshoot if we're on the last bit!
-		if(goalPoint != null && path.size() == 0){
-			double idealIndex = segment.indexOf(goalPoint);
-			if((direction == 1 && idealIndex <= currentIndex) || (direction == -1 && idealIndex >= currentIndex)){
-				currentIndex = idealIndex;
-				time = 0;
-				startIndex = endIndex = currentIndex;
-			}
-		}
-
-		updateLoc(segment.extractPoint(currentIndex));
-		
-		if(path.size() == 0 && arrived()){
-			path = null;
-			if(edge != null)
-				((ListEdge)edge).removeElement(this);
-		}
-		return time;
-	}
 
 	public double getEvacuatingTime(){ return evacuatingTime; }
-	
-	void testEvacuating(double myRand){
-		if(evacuating) {
-			evacuatingTime += 1;
-			return;
-		}
-		
-		else if(myRand < .05){
-			evacuating = true;
-			double myDistance = Double.MAX_VALUE;
-			MasonGeometry myShelter = null;
-			for(Object o: world.shelterLayer.getGeometries()){
-				Shelter s = (Shelter) o;
-				if(fullShelters.contains(s)) continue;
-				double possibleDist = geometry.distance(s.getEntrance()) / (Math.log(s.getArea()) * Math.pow(speed, 2));
-				if(possibleDist < myDistance){
-					myDistance = possibleDist;
-					myShelter = s;
-				}
-			}
-			if(myShelter == null){
-				System.out.println("what!? No shelters!!!");
-			}
-			targetDestination = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
-					world.resolution, world.networkLayer, 
-					world.networkEdgeLayer, world.fa).geometry.getCoordinate();
-			path = null;
-			targetShelter = (Shelter)myShelter;
-		}
-	}
-	
-	/**
-	 * Assuming the Person is not interrupted by intervening events, they are activated
-	 * roughly when it is time to begin moving toward the next Task
-	 */
-	@Override
-	public void step(SimState state) {
-		
-		double time = state.schedule.getTime(); // find the current time
-
-		// random chance of beginning to evacuate
-		testEvacuating(state.random.nextDouble());
-		
-		// if the agent is already in transit, continue moving
-		if(targetDestination != null){
-			if(path == null){
-				headFor(targetDestination);
-			}
-			this.navigate(world.resolution);
-		}
-		else {
-			Bag ns = world.roadNodes;
-			targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
-		}
-
-		if(!evacuating || path != null)
-			world.schedule.scheduleOnce(time+1, this);
-		
-		if(evacuating && path == null){
-			if(targetShelter.roomForN(1)){
-				targetShelter.addNewPerson(this);
-				return;
-			}
-			else{
-				fullShelters.add(targetShelter);
-				System.out.println("Shelter is full! " + targetShelter.toString());
-				testEvacuating(.001); // force a reassessment
-			}
-		}
-	}
-	
-	public double estimateTravelTimeTo(Geometry g){
-		return(g.distance(this.geometry) / speed);
-	}
 	
 	/**
 	 * Set up a course to take the Agent to the given coordinates
@@ -486,4 +361,5 @@ public class Person extends TrafficAgent implements Communicator {
 		return 1;
 	}
 
+	public String getMyID(){ return this.myID; }
 }
