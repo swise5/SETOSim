@@ -26,7 +26,10 @@ import utilities.RoadNetworkUtilities;
 
 public class Person extends TrafficAgent implements Communicator {
 	
-	Coordinate home, work;
+	Household myHousehold;
+	Coordinate work;
+	int age; // years
+	int sex; // 0 for female, 1 for male, ++ for other
 	TakamatsuSim world;
 	String myID;
 
@@ -43,56 +46,62 @@ public class Person extends TrafficAgent implements Communicator {
 	Shelter targetShelter = null;
 
 	
-	public Person(String id, Coordinate position, Coordinate home, Coordinate work, TakamatsuSim world){		
-		this(id, position, home, work, world, .8, .5, .1, .1, 10000, 1000, .5, 2000);
-	}
-	
-	public Person(String id, Coordinate position, Coordinate home, Coordinate work, TakamatsuSim world, 
-			double communication_success_prob, double contact_success_prob, double tweet_prob, 
-			double retweet_prob, double comfortDistance, double observationDistance, double decayParam, double speed){
+	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, TakamatsuSim world){
 
+		// add it to the space
 		super((new GeometryFactory()).createPoint(position));
-		
+		this.space = world.agentsLayer;
+		this.space.addGeometry(this);
+		this.isMovable = true;
+
 		this.myID = id;
 		
-		if(position != null) {
-			this.home = (Coordinate)position.clone();
-			edge = RoadNetworkUtilities.getClosestEdge(position, world.resolution, world.networkEdgeLayer, world.fa);
-			
-			if(edge == null){
-				System.out.println("\tINIT_ERROR: no nearby edge");
-				return;
-			}
-				
-			GeoNode n1 = (GeoNode) edge.getFrom();
-			GeoNode n2 = (GeoNode) edge.getTo();
-			
-			if(n1.geometry.getCoordinate().distance(position) <= n2.geometry.getCoordinate().distance(position))
-				node = n1;
-			else 
-				node = n2;
 
-			segment = new LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry);
-			startIndex = segment.getStartIndex();
-			endIndex = segment.getEndIndex();
-			currentIndex = segment.indexOf(position);
-		}
-		if(work != null)
-			this.work = (Coordinate)work.clone();
+		// other utilities
 		this.world = world;
 		if(world.random.nextDouble() < .1) 
 			this.speed = TakamatsuSim.speed_vehicle;
 		else
 			this.speed = TakamatsuSim.speed_pedestrian;
 		this.addIntegerAttribute("speed", (int)this.speed);
+		
+		// inject the agent into the Edge where it is starting
+		if(position != null)
+			placeOnEdge(position);
 
-		// add it to the space
-		this.space = world.agentsLayer;
-		this.space.addGeometry(this);
-		this.isMovable = true;
+		// create a new Household for the person
+		if(household == null)
+			myHousehold = new Household(home);
+		else
+			myHousehold = household;
+
+		// set up the workspace if needed
+		if(work != null)
+			this.work = (Coordinate)work.clone();
+		
 	}
 	
+	void placeOnEdge(Coordinate c){
+		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
+		
+		if(edge == null){
+			System.out.println("\tINIT_ERROR: no nearby edge");
+			return;
+		}
+			
+		GeoNode n1 = (GeoNode) edge.getFrom();
+		GeoNode n2 = (GeoNode) edge.getTo();
+		
+		if(n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
+			node = n1;
+		else 
+			node = n2;
 
+		segment = new LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry);
+		startIndex = segment.getStartIndex();
+		endIndex = segment.getEndIndex();
+		currentIndex = segment.indexOf(c);
+	}
 
 	/**
 	 * Assuming the Person is not interrupted by intervening events, they are activated

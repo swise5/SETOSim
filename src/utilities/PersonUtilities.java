@@ -44,7 +44,7 @@ public class PersonUtilities {
 			//Point myPoint = mg.geometry.getCentroid();
 			//Coordinate myC = new Coordinate(myPoint.getX(), myPoint.getY());
 			Coordinate myC = (Coordinate) mg.geometry.getCoordinate().clone();
-			Person a = new Person("Person"+i,myC,myC,myC, world);
+			Person a = new Person("Person"+i,myC,myC,myC, null, world);
 			agents.add(a);
 			
 			world.schedule.scheduleOnce(a);
@@ -92,7 +92,7 @@ public class PersonUtilities {
 				Coordinate homeCoord = InputCleaning.readCoordinateFromFile(bits[3]);
 				Coordinate workCoord = InputCleaning.readCoordinateFromFile(bits[4]);
 				
-				Person a = new Person(id, homeCoord, homeCoord, workCoord, world);
+				Person a = new Person(id, homeCoord, homeCoord, workCoord, null, world);
 				
 				a.addIntegerAttribute("sex", sex);
 				a.addIntegerAttribute("age", age);
