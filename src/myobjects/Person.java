@@ -208,7 +208,7 @@ public class Person extends TrafficAgent implements Communicator {
 		for(Object o: world.shelterLayer.getGeometries()){
 			Shelter s = (Shelter) o;
 			if(fullShelters.contains(s)) continue;
-			double possibleDist = geometry.distance(s.getEntrance()) / (Math.log(s.getArea()) * Math.pow(speed, 2));
+			double possibleDist = geometry.getCoordinate().distance(s.getEntrance()) / (Math.log(s.getArea()) * Math.pow(speed, 2));
 			if(possibleDist < myDistance){
 				myDistance = possibleDist;
 				myShelter = s;
@@ -221,9 +221,12 @@ public class Person extends TrafficAgent implements Communicator {
 			targetShelter = null;
 			return;
 		}
-		targetDestination = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
+		/*GeoNode gn = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
 				world.resolution, world.networkLayer, 
-				world.networkEdgeLayer, world.fa).geometry.getCoordinate();
+				world.networkEdgeLayer, world.fa);
+		targetDestination = gn.geometry.getCoordinate();
+		*/
+		targetDestination = ((Shelter)myShelter).getEntrance();
 		path = null;
 		targetShelter = (Shelter)myShelter;
 	}

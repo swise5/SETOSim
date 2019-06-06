@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import com.vividsolutions.jts.geom.Point;
 
+import myobjects.Household;
 import myobjects.Person;
 import mysim.TakamatsuSim;
 import mysim.TakamatsuSim.MediaInstance;
@@ -48,6 +49,60 @@ public class PersonUtilities {
 			agents.add(a);
 			
 			world.schedule.scheduleOnce(a);
+		}
+		
+		return agents;
+	}
+	
+	public static synchronized ArrayList<Person> setupHouseholdsAtRandom(GeomVectorField buildings, Schedule schedule, TakamatsuSim world, 
+			GeometryFactory fa){
+		
+		ArrayList <Person> agents = new ArrayList <Person> ();
+		Bag myBuildings = buildings.getGeometries();
+		int myBuildingsSize = myBuildings.numObjs;
+		int personIndex = 0;
+		
+		for(Object o: buildings.getGeometries()){
+			
+			// check the geometry: if it's huge, then it's not a house!
+			MasonGeometry mg = (MasonGeometry) o;
+			if(mg.geometry.getArea() > 1000)
+				continue;
+
+			// create the household
+			Coordinate home = (Coordinate)mg.geometry.getCoordinate().clone();
+			Household h = new Household(home);
+			
+			// set up Household members
+			int numChildren = (int) Math.max(0, 2 * world.random.nextGaussian());
+			int numAdults = (int) (1 + world.random.nextInt(6));
+			for(int i = 0; i < numAdults; i++)
+				h.addMember(new Person("ID_"+personIndex++,home, null, home, h, world));
+			for(int i = 0; i < numChildren; i++)
+				h.addMember(new Person("ID_child_"+personIndex++,home, null, home, h, world));
+
+			// schedule all to update
+			for(Person p: h.getMembers())
+				world.schedule.scheduleOnce(p);
+			
+			// save to records
+			agents.addAll(h.getMembers());
+		}
+		
+		for(int i = 0; i < 1000; i++){
+			
+			Object o = myBuildings.get(world.random.nextInt(myBuildingsSize));
+			MasonGeometry mg = (MasonGeometry) o;
+			while(mg.geometry.getArea() > 1000){
+				o = myBuildings.get(world.random.nextInt(myBuildingsSize));
+				mg = (MasonGeometry) o;
+			}
+			//Point myPoint = mg.geometry.getCentroid();
+			//Coordinate myC = new Coordinate(myPoint.getX(), myPoint.getY());
+			Coordinate myC = (Coordinate) mg.geometry.getCoordinate().clone();
+			Person a = new Person("Person"+i,myC,myC,myC, null, world);
+			agents.add(a);
+			
 		}
 		
 		return agents;

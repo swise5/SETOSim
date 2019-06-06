@@ -246,7 +246,7 @@ public class TakamatsuSim extends SimState {
 			
 			for(Object o: shelterRaw.getGeometries()){
 				MasonGeometry shelter = (MasonGeometry)o;
-				Shelter myShelter = new Shelter(shelter, (int) shelter.getIntegerAttribute("parkingNum"));
+				Shelter myShelter = new Shelter(shelter, (int) shelter.getIntegerAttribute("parkingNum"), this);
 				shelterLayer.addGeometry(myShelter);
 			}
 			
@@ -280,7 +280,7 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
-			agents.addAll(PersonUtilities.setupPersonsAtRandom(networkLayer, schedule, this, fa));
+			agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 			for(Person p: agents){
 				agentsLayer.addGeometry(p);
 			}

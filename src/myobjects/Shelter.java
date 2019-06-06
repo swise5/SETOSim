@@ -7,27 +7,42 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 
+import mysim.TakamatsuSim;
 import sim.util.geo.MasonGeometry;
 import swise.agents.SpatialAgent;
+import swise.objects.network.GeoNode;
+import utilities.RoadNetworkUtilities;
 
 public class Shelter extends SpatialAgent {
 	
 	int capacity;
 	int vehicleCapacity;
-	Point entrance;
+	Coordinate entrance;
 	
 	static double shelterDensityPerPerson = 40.; 
 	
 	ArrayList <Person> currentlyPresent = new ArrayList <Person> ();
 	
-	public Shelter(MasonGeometry g){ this(g, 0); }
-	public Shelter(MasonGeometry g, int numVehicles) {
+	public Shelter(MasonGeometry g, TakamatsuSim world){ this(g, 0, world); }
+	public Shelter(MasonGeometry g, int numVehicles, TakamatsuSim world) {
 		super(g.geometry.getCoordinate());
 		geometry = g.geometry;
 		capacity = (int) (g.geometry.getArea() / shelterDensityPerPerson);
 		vehicleCapacity = numVehicles;
-		GeometryFactory fa = new GeometryFactory();
-		entrance = fa.createPoint(new Coordinate(g.getDoubleAttribute("entranceX"), g.getDoubleAttribute("entranceY")));
+		
+		Coordinate c = new Coordinate(g.getDoubleAttribute("entranceX"), g.getDoubleAttribute("entranceY"));
+		
+		// test to make sure it's close enough to the road network
+		double rez = world.resolution;
+		GeoNode gn = RoadNetworkUtilities.getClosestGeoNode(c, rez, world.networkLayer,world.networkEdgeLayer, world.fa);
+		while(gn == null && rez < world.grid_width){
+			rez *= 2;
+			gn = RoadNetworkUtilities.getClosestGeoNode(c, rez, world.networkLayer,world.networkEdgeLayer, world.fa);
+		}
+		
+		// store it with the new, updated entrance!
+		entrance = (Coordinate)gn.geometry.getCoordinate().clone();
+		
 	}
 	
 	boolean roomForN(int n){
@@ -42,7 +57,7 @@ public class Shelter extends SpatialAgent {
 		return currentlyPresent.remove(p);
 	}
 	
-	Point getEntrance(){
+	public Coordinate getEntrance(){
 		return entrance;
 	}
 	

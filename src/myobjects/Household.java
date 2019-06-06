@@ -10,8 +10,10 @@ public class Household {
 	
 	public Household(Coordinate homeLocation){
 		home = (Coordinate)homeLocation.clone();
+		members = new ArrayList <Person> ();
 	}
 	
 	public Coordinate getHome(){ return home;}
 	public void addMember(Person p){ members.add(p);}
+	public ArrayList <Person> getMembers(){ return members;}
 }
