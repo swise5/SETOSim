@@ -22,6 +22,7 @@ import swise.objects.NetworkUtilities;
 import swise.objects.network.GeoNode;
 import swise.objects.network.ListEdge;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
@@ -73,7 +74,7 @@ public class PopulationSynthesis {
 		
 		int age;
 		int sex;
-		Point home;
+		MasonGeometry home;
 		Point work;
 		HashMap <Agent, Integer> socialTies; // range: 0-10 with 10 being strongest
 		long myID;
@@ -118,7 +119,7 @@ public class PopulationSynthesis {
 				similarity -= ageDiff;
 			
 			if(home != null){
-				double distance = home.distance(a.home);
+				double distance = home.geometry.distance(a.home.geometry);
 				similarity += distance * 1000;
 			}
 			
@@ -127,11 +128,11 @@ public class PopulationSynthesis {
 		
 		public boolean equals(Object o){
 			if(! (o instanceof Agent)) return false;
-			return this.myID == ((Agent)o).myID;//((Agent)o).getStringAttribute("ID").equals(this.getStringAttribute("ID"));
+			return this.myID == ((Agent)o).myID;
 		}
 		
 		public int hashCode(){
-			return (int) myID;//this.getStringAttribute("ID").hashCode();
+			return (int) myID;
 		}
 	}
 	
@@ -143,13 +144,12 @@ public class PopulationSynthesis {
 		
 		// read in data
 		GeomVectorField roads = readInVectors(dirName + roadsFilename);
+		GeomVectorField buildings = readInVectors(dirName + buildingsFilename);
 		roadNetwork = NetworkUtilities.multipartNetworkCleanup(roads, new Bag(), resolution, gf, random, 0);
 
 		// construct the houses into which individuals are to be slotted
-	//	HashMap <MasonGeometry, ArrayList<Point>> houses = generateHouses(demo, roadNetwork);
+		HashSet <MasonGeometry> candidateHouses = generateHouses(buildings, roadNetwork);
 		
-		ArrayList<ArrayList<Agent>> allHouseholds = new ArrayList <ArrayList<Agent>> ();
-
 		//
 		// Generate the households
 		//
@@ -159,10 +159,10 @@ public class PopulationSynthesis {
 		if (allIndividuals == null)
 			return;
 			
-		ArrayList<ArrayList<Agent>> households = generateHouseholds(allIndividuals);
+		ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals);
 			
-/*		assignHouseholdsToHouses(households);
- TODO add meeeeee
+		assignHouseholdsToHouses(allHouseholds, candidateHouses);
+/* TODO add meeeeee
 		ArrayList <Agent> noAssignedHome = new ArrayList <Agent> ();
 		for(Agent a: individuals){
 			if(a.home == null)
@@ -197,7 +197,7 @@ public class PopulationSynthesis {
 		//
 
 		allIndividuals = new ArrayList <Agent> ();
-		for(ArrayList <Agent> household: households){
+		for(ArrayList <Agent> household: allHouseholds){
 			allIndividuals.addAll(household);
 		}
 		
@@ -213,12 +213,41 @@ public class PopulationSynthesis {
 		// Write out the findings
 		//
 
-		writeOutAggregated(households);
+		writeOutHouseholds(allHouseholds);
 	}
 
+	public void writeOutHouseholds(ArrayList <ArrayList <Agent>> households){
+		String fout = dirName + "synthPop_hh_" + System.currentTimeMillis() + ".txt";
+		
+		BufferedWriter w;
+		try {
+			w = new BufferedWriter(new FileWriter(fout));
+			
+			int index = 0;
+			for(ArrayList <Agent> h: households){
+				String myHH = "HOUSEHOLD_" + index++;
+				MasonGeometry myHHLocation = h.get(0).home;
+				Coordinate c = myHHLocation.geometry.getCoordinate();
+				myHH += "\t" + c.x + "\t" + c.y + "\t";
+				Agent a = h.get(0);
+				myHH += "\t" + a.myID + "\t" + a.age + "\t" + a.sex;
+				myHH += "\t" + h.size();
+/*				for(Agent a: h){
+					myHH += "\t" + a.myID + ":" + a.age + ":" + a.sex;
+				}
+	*/			w.write(myHH + "\n");
+			}
+
+			w.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}	
 
 	public void writeOutAggregated(ArrayList <ArrayList <Agent>> households){
-		String fout = "/Users/swise/Dissertation/Colorado/TESTTINY.txt";
+		String fout = dirName + "synthPop_" + System.currentTimeMillis() + ".txt";
 		
 		BufferedWriter w;
 		try {
@@ -349,21 +378,26 @@ public class PopulationSynthesis {
 
 	}
 
-	void assignHouseholdsToHouses(ArrayList <ArrayList <Agent>> households, ArrayList <Point> houses){
+	void assignHouseholdsToHouses(ArrayList <ArrayList <Agent>> households, HashSet <MasonGeometry> houses){
 		
-		ArrayList <Point> assignedHouses = new ArrayList <Point> ();
+		ArrayList <MasonGeometry> availableHouses = new ArrayList <MasonGeometry> ();
+		availableHouses.addAll(houses);
 		
+		// make sure that we don't have too many houses!
 		int numHouses = houses.size();
 		if(numHouses < households.size())
 			System.out.println("ERROR: not enough housing units given the number of households");
 		
 		for(ArrayList <Agent> household: households){
-			Point assignedHouse = houses.get(random.nextInt(numHouses));
-			while(assignedHouses.contains(assignedHouse))
-				assignedHouse = houses.get(random.nextInt(numHouses));
-			assignedHouses.add(assignedHouse);
+			int myIndex = random.nextInt(numHouses);
+			MasonGeometry assignedHouse = availableHouses.get(myIndex);
+			while(assignedHouse == null){
+				myIndex = random.nextInt(numHouses);
+				assignedHouse = availableHouses.get(myIndex);
+			}
 			for(Agent a: household)
 				a.home = assignedHouse;
+			//availableHouses.set(myIndex, null);
 		}
 	}
 
@@ -542,12 +576,16 @@ public class PopulationSynthesis {
 	 * @param roadNetwork
 	 * @return
 	 */
-	HashMap <MasonGeometry, ArrayList<Point>> generateHouses(GeomVectorField field, Network roadNetwork){
+	HashSet <MasonGeometry> generateHouses(GeomVectorField field, Network roadNetwork){
 		
 		HashMap <MasonGeometry, ArrayList <Point>> result = new HashMap <MasonGeometry, ArrayList <Point>> (); 
 		
-		HashMap <GeoNode, MasonGeometry> nodesTractMapping = new HashMap <GeoNode, MasonGeometry> ();
-		HashMap <MasonGeometry, ArrayList <ListEdge>> edgesTractMapping = new HashMap <MasonGeometry, ArrayList <ListEdge>>(); 
+		// set up the location to hold the objects
+		GeomVectorField roadGeoms = new GeomVectorField();
+		roadGeoms.setMBR(field.getMBR());
+		
+		HashSet <ListEdge> discoveredEdges = new HashSet <ListEdge> ();
+		HashSet <MasonGeometry> houseCandidates = new HashSet <MasonGeometry> ();
 		
 		//
 		// match all the edges to the areas that completely contain them.
@@ -555,107 +593,47 @@ public class PopulationSynthesis {
 		for(Object o: roadNetwork.getAllNodes()){ // go through nodes one by one
 			
 			GeoNode node = (GeoNode) o;
-			MasonGeometry tract = nodesTractMapping.get(node);
-			if(tract == null){
-				tract = getCovering(node, field);
-				nodesTractMapping.put(node, tract);
-			}
 			
-			// no need to consider further nodes which are not within any tract
-			if(tract == null)
+			// don't look if the node is outside the building area!
+			if(!field.getMBR().contains(node.getGeometry().getCoordinate()))
 				continue;
 
-			// for each of the edges out of this node, consider whether they should be included in the
-			// "intra-tract" node list
+			// go through the edges for this node
 			for(Object p: roadNetwork.getEdgesOut(node)){
 				
-				// find the opposite node
+				// get the associated edges!
 				ListEdge edge = (ListEdge) p;
 				
-				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute("TYPE");
+				// if the road is the wrong type, or it has already been found, continue!
+				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute("highway");
 				if(!(type.equals("residential") || type.equals("living")))
 					continue;
+				if(discoveredEdges.contains(edge))
+					continue;
 				
-				GeoNode otherNode = (GeoNode) edge.getTo();
-				if(otherNode == node) otherNode = (GeoNode) edge.getFrom();
-
-				// determine whether this edge qualifies
-				MasonGeometry otherTract = nodesTractMapping.get(otherNode);
-				if(otherTract == null){
-					otherTract = getCovering(otherNode, field);
-					nodesTractMapping.put(otherNode, otherTract);
-				}
+				// add it to the field!
+				MasonGeometry mg = (MasonGeometry)edge.getInfo();
+				roadGeoms.addGeometry(mg);
+				discoveredEdges.add(edge);
 				
-				if(otherTract != null && otherTract == tract) {
-					if(edgesTractMapping.get(tract) == null)
-						edgesTractMapping.put(tract, new ArrayList <ListEdge> ());
-					edgesTractMapping.get(tract).add(edge);
+				// attempt to add buildings, based on size
+				Bag b = field.getObjectsWithinDistance(mg, resolution);
+				for(Object raw_house: b){
+					MasonGeometry possibleHouse = (MasonGeometry) raw_house;
+					
+					 // don't take overly large buildings!
+					if(possibleHouse.geometry.getArea() > 200) continue;
+					
+					// if it's close to a Residential or Living street and smaller than 200m^2, add it!
+					// https://en.wikipedia.org/wiki/Housing_in_Japan suggests that the average is 94.85 - doubled here in case!
+					houseCandidates.add(possibleHouse);
 				}
 			}
-		}
-
-		//
-		// go through the tracts and generate points along the roads
-		//
-		for(Object o: field.getGeometries()){
-			MasonGeometry tract = (MasonGeometry) o;
-			
-			if(!edgesTractMapping.containsKey(tract))
-				continue; // there are no roads here, so it's not a relevant target area
-			
-			double residentialRoadLength = 0;
-			ArrayList <ListEdge> residentialRoads = new ArrayList <ListEdge> ();
-			for(ListEdge e: edgesTractMapping.get(tract)){
-
-				String type = ((MasonGeometry)e.info).getStringAttribute("TYPE");
-				if(type.equals("residential")){
-					Geometry gm = ((MasonGeometry)e.info).geometry;
-					residentialRoadLength += ((MasonGeometry)e.info).geometry.getLength();
-					residentialRoads.add(e);
-				}
-			}
-			
-			int numHouses= tract.getIntegerAttribute("DP0180001");
-			
-			// houses on either side of the road along each of the residential roads
-			double houseSpacing = residentialRoadLength / (double) numHouses;
-			//houseSpacing = Math.max(.001, houseSpacing);
-			
-			ArrayList <Point> houses = new ArrayList <Point> ();
-			
-			// iterate along the roads and set up the houses
-			for(ListEdge e: residentialRoads){
-				LineString ls = (LineString)((MasonGeometry)e.info).geometry;
-				LengthIndexedLine segment = new LengthIndexedLine(ls);
-				double startIndex = segment.getStartIndex();
-				double endIndex = segment.getEndIndex();
-				
-				for(double i = startIndex; i < endIndex; i += houseSpacing){
-					Point house1 = gf.createPoint(segment.extractPoint(i));
-					houses.add(house1);
-				}
-			}
-			
-			result.put(tract, houses);
 		}
 		
-		return result;
+		return houseCandidates;
 	}
 	
-	/**
-	 * Get the tract that completely covers the given geometry 
-	 * @param g
-	 * @param field
-	 * @return
-	 */
-	MasonGeometry getCovering(MasonGeometry g, GeomVectorField field){
-		Bag geos = field.getCoveringObjects(g);
-		if(geos == null || geos.size() == 0){
-			System.out.println("Geometry Error: no field contains this geometry");
-			return null;
-		}		
-		return (MasonGeometry) geos.get(0);
-	}
 
 	double [] getAgeSexConstraints(){
 		
