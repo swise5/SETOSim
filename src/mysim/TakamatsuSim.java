@@ -177,7 +177,7 @@ public class TakamatsuSim extends SimState {
 			//////////////////////////////////////////////
 		
 			InputCleaning.readInVectorLayer(baseLayer, dirName + "water.shp", "water", new Bag());
-			InputCleaning.readInVectorLayer(buildingLayer, dirName + "buildings.shp", "buildings", new Bag());
+			InputCleaning.readInVectorLayer(buildingLayer, dirName + "centralBuildings/buildings.shp", "buildings", new Bag());
 			InputCleaning.readInVectorLayer(roadLayer, dirName + "roadsCleanSubset.shp", "road network", new Bag());
 			
 			GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
@@ -453,8 +453,6 @@ public class TakamatsuSim extends SimState {
 			String mySettings = "dummy";
 
 			// SAVE THE HEATMAP
-			String blahhhh = dirName + record_heatmap_filename + mySettings + mySeed + ".txt";
-			System.out.println(blahhhh);
 			record_heatmap = new BufferedWriter(new FileWriter(dirName + record_heatmap_filename + mySettings + mySeed + ".txt"));
 			IntGrid2D myHeatmap = ((IntGrid2D) this.heatmap.getGrid());
 

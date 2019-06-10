@@ -107,7 +107,7 @@ public class TakamatsuGUI extends GUIState {
 		network.setPortrayalForAll(new GeomPortrayal(new Color(200,200,50), false));
 */
 		heatmap.setField(world.heatmap.getGrid()); 
-		heatmap.setMap(new SimpleColorMap(0, 50, Color.black, Color.red));
+		heatmap.setMap(new SimpleColorMap(0, 200, Color.black, Color.red));
 		
 		// reset stuff
 		// reschedule the displayer
