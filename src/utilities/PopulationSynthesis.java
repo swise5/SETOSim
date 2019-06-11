@@ -49,7 +49,7 @@ public class PopulationSynthesis {
 	String buildingsFilename = "centralBuildings/buildings.shp";
 
 	int targetNumIndividualsToGenerate = 140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  68700;//197030 ;//TODO resolve this better, talk to Hitomi about data!!
+	int targetNumHouseholdsToGenerate =  68700;//197030 ;
 
 	
 	Network roadNetwork;
@@ -57,7 +57,8 @@ public class PopulationSynthesis {
 
 	GeometryFactory gf = new GeometryFactory();
 	
-	public static double resolution = 5;// // the granularity of the simulation 
+	public static double resolution = 5;// // the granularity of the simulation
+	public static double distanceToRoads = 10; // m, based on mucking around wiht it
 	
 	public static double numYearsPerBin = 5.;
 	public static int maxAge = 100;
@@ -227,15 +228,17 @@ public class PopulationSynthesis {
 			for(ArrayList <Agent> h: households){
 				String myHH = "HOUSEHOLD_" + index++;
 				MasonGeometry myHHLocation = h.get(0).home;
-				Coordinate c = myHHLocation.geometry.getCoordinate();
-				myHH += "\t" + c.x + "\t" + c.y + "\t";
-				Agent a = h.get(0);
-				myHH += "\t" + a.myID + "\t" + a.age + "\t" + a.sex;
+				String myName = myHHLocation.getStringAttribute("fid");
+//				Coordinate c = myHHLocation.geometry.getCoordinate();
+//				myHH += "\t" + c.x + "\t" + c.y + "\t";
+				myHH += "\t" + myName;
+				//Agent a = h.get(0);
+				//myHH += "\t" + a.myID + "\t" + a.age + "\t" + a.sex;
 				myHH += "\t" + h.size();
-/*				for(Agent a: h){
+				for(Agent a: h){
 					myHH += "\t" + a.myID + ":" + a.age + ":" + a.sex;
 				}
-	*/			w.write(myHH + "\n");
+				w.write(myHH + "\n");
 			}
 
 			w.close();
@@ -617,7 +620,7 @@ public class PopulationSynthesis {
 				discoveredEdges.add(edge);
 				
 				// attempt to add buildings, based on size
-				Bag b = field.getObjectsWithinDistance(mg, resolution);
+				Bag b = field.getObjectsWithinDistance(mg, distanceToRoads);
 				for(Object raw_house: b){
 					MasonGeometry possibleHouse = (MasonGeometry) raw_house;
 					

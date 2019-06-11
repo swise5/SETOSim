@@ -87,7 +87,7 @@ public class TakamatsuSim extends SimState {
 	String dirName = "/Users/swise/Projects/hitomi/data/";//"/Users/swise/Google Drive/GTD-projects/ROR/Hitomi_Nakanishi/data/";
 	
 	public static String communicatorFilename = "communicatorEvents.txt";
-	public static String agentFilename = "synthPopulationHOUSEHOLD.txt";
+	public static String agentFilename = "synthPop_hh_1560214490851.txt";
 
 	String record_speeds_filename = "speeds/speeds", 
 			record_sentiment_filename = "sentiments/sentiment",
@@ -280,7 +280,8 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
-			agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
+			agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
+			//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 			for(Person p: agents){
 				agentsLayer.addGeometry(p);
 			}

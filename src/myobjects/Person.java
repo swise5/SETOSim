@@ -10,6 +10,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import mysim.TakamatsuSim;
+import utilities.PopulationSynthesis;
 import sim.engine.SimState;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
@@ -67,7 +68,9 @@ public class Person extends TrafficAgent implements Communicator {
 		
 		// inject the agent into the Edge where it is starting
 		if(position != null)
-			placeOnEdge(position);
+			placeOnEdge(position, world.resolution);
+		if(edge == null) // there was a problem placing it on the edge!
+			placeOnEdge(position, PopulationSynthesis.distanceToRoads);
 
 		// create a new Household for the person
 		if(household == null)
@@ -81,8 +84,8 @@ public class Person extends TrafficAgent implements Communicator {
 		
 	}
 	
-	void placeOnEdge(Coordinate c){
-		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
+	void placeOnEdge(Coordinate c, double resolution){
+		edge = RoadNetworkUtilities.getClosestEdge(c, resolution, world.networkEdgeLayer, world.fa);
 		
 		if(edge == null){
 			System.out.println("\tINIT_ERROR: no nearby edge");

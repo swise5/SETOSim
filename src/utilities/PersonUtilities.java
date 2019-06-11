@@ -22,6 +22,7 @@ import sim.engine.SimState;
 import sim.engine.Steppable;
 import sim.field.geo.GeomVectorField;
 import sim.util.Bag;
+import sim.util.geo.AttributeValue;
 import sim.util.geo.MasonGeometry;
 import swise.objects.PopSynth;
 
@@ -108,13 +109,7 @@ public class PersonUtilities {
 		return agents;
 	}
 	
-	/**
-	 * Given a record file of a set of Persons, create Persons with the assigned characteristics
-	 * and add them to the simulation
-	 * 
-	 * @param agentsFilename - the file in which the agent records are stored
-	 */
-	public synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world, MediaInstance media){
+	public static synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world, MediaInstance media){
 		try {
 			ArrayList<Person> agents = new ArrayList <Person> ();
 			
@@ -231,6 +226,106 @@ public class PersonUtilities {
 				a.addSocialMediaContact(media);
 			}
 			
+			System.out.println("DONE READING IN PEOPLE");
+			// clean up
+			
+			
+			schedule.scheduleRepeating(1316, new Steppable(){
+
+				@Override
+				public void step(SimState state) {
+					((TakamatsuSim)state).resetLayers();
+					
+				}
+				
+			});
+			
+			return agents;
+
+		} catch (Exception e) {
+			System.err.println("File input error: " + agentsFilename);
+		}
+		return null;
+	}
+	
+	/**
+	 * Given a record file of a set of Persons, create Persons with the assigned characteristics
+	 * and add them to the simulation
+	 * 
+	 * @param agentsFilename - the file in which the agent records are stored
+	 */
+	public static synchronized ArrayList<Person> setupHouseholdsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world){
+		try {
+			ArrayList<Person> agents = new ArrayList <Person> ();
+			
+			System.out.println("Reading in agents from " + agentsFilename);
+			
+			// Open the tracts file
+			FileInputStream fstream = new FileInputStream(agentsFilename);
+
+			// Convert our input stream to a BufferedReader
+			BufferedReader agentData = new BufferedReader(new InputStreamReader(fstream));
+			String s;
+
+			// assmeble the list of building names so that the agents can be associated with the correct buildings
+			HashMap <String, MasonGeometry> buildingNames = new HashMap <String, MasonGeometry> ();
+			for(Object o: world.buildingLayer.getGeometries()){
+				MasonGeometry mg = (MasonGeometry) o;
+				buildingNames.put(mg.getStringAttribute("fid"), mg);
+				Coordinate c = world.snapPointToRoadNetwork(mg.geometry.getCoordinate());
+				mg.addAttribute("entrance", c);
+			}
+
+			// with that established, read in the households from the file
+			System.out.println("BEGIN READING IN HOUSEHOLDS");
+
+			HashMap <String, Person> agentNameMapping = new HashMap <String, Person> ();
+			
+			while ((s = agentData.readLine()) != null) {
+				String[] bits = s.split("\t");
+				
+				// recreate the Person from the household records
+				String id = bits[0];
+				
+				// identify the building where the Household lives
+				String buildingName = bits[1];
+				MasonGeometry myHomeBuilding = buildingNames.get(buildingName);
+				if(myHomeBuilding == null){
+					System.out.println("ERROR when reading in Household " + id + ": no building associated");
+					continue;
+				}
+
+				// with the location, set up the Household object to hold the Persons
+				AttributeValue myEntrance = (AttributeValue) myHomeBuilding.getAttribute("entrance");
+				Coordinate homeCoord = (Coordinate) myEntrance.getValue();//myHomeBuilding.geometry.getCoordinate();
+				Household h = new Household(homeCoord);
+
+				// determine how many Household members there are
+				Integer numHouseholdMembers = Integer.parseInt(bits[2]);
+								
+				// read in each Household member and add them to the Household
+				for(int i = 3; i < numHouseholdMembers; i++){
+
+					String [] raw_person = bits[i].split(":");
+					
+					String p_id = raw_person[0];
+					Integer age = Integer.parseInt(raw_person[1]);
+					Integer sex = Integer.parseInt(raw_person[2]);
+
+					Person a = new Person(p_id, homeCoord, homeCoord, null, h, world);
+					
+					a.addIntegerAttribute("sex", sex);
+					a.addIntegerAttribute("age", age);
+					agentNameMapping.put(id, a);
+
+					agents.add(a);
+					world.schedule.scheduleOnce(a);
+				}
+			}
+
+			agentData.close();
+
+
 			System.out.println("DONE READING IN PEOPLE");
 			// clean up
 			
