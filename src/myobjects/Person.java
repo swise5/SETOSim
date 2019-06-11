@@ -68,9 +68,7 @@ public class Person extends TrafficAgent implements Communicator {
 		
 		// inject the agent into the Edge where it is starting
 		if(position != null)
-			placeOnEdge(position, world.resolution);
-		if(edge == null) // there was a problem placing it on the edge!
-			placeOnEdge(position, PopulationSynthesis.distanceToRoads);
+			placeOnEdge(position);
 
 		// create a new Household for the person
 		if(household == null)
@@ -84,8 +82,8 @@ public class Person extends TrafficAgent implements Communicator {
 		
 	}
 	
-	void placeOnEdge(Coordinate c, double resolution){
-		edge = RoadNetworkUtilities.getClosestEdge(c, resolution, world.networkEdgeLayer, world.fa);
+	void placeOnEdge(Coordinate c){
+		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
 		
 		if(edge == null){
 			System.out.println("\tINIT_ERROR: no nearby edge");
@@ -106,6 +104,11 @@ public class Person extends TrafficAgent implements Communicator {
 		currentIndex = segment.indexOf(c);
 	}
 
+	public static double rayleighDistrib(double unif){
+		double x = TakamatsuSim.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
+		return x;
+	}
+	
 	/**
 	 * Assuming the Person is not interrupted by intervening events, they are activated
 	 * roughly when it is time to begin moving toward the next Task
@@ -120,7 +123,7 @@ public class Person extends TrafficAgent implements Communicator {
 		// either update the evacuation time or possibly begin evacuating
 		if(!evacuating && state.random.nextDouble() < .05){
 			beginEvacuating(time);
-			state.schedule.scheduleOnce(time + state.random.nextInt(5) * 5 + 10, this);
+			state.schedule.scheduleOnce(time + (int)rayleighDistrib(world.random.nextDouble()), this);
 			return;
 		}
 		

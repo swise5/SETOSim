@@ -298,7 +298,8 @@ public class PersonUtilities {
 				// with the location, set up the Household object to hold the Persons
 				AttributeValue myEntrance = (AttributeValue) myHomeBuilding.getAttribute("entrance");
 				Coordinate homeCoord = (Coordinate) myEntrance.getValue();//myHomeBuilding.geometry.getCoordinate();
-				Household h = new Household(homeCoord);
+				Coordinate homeCoordCopy = new Coordinate(homeCoord.x, homeCoord.y, homeCoord.z);
+				Household h = new Household(homeCoordCopy);
 
 				// determine how many Household members there are
 				Integer numHouseholdMembers = Integer.parseInt(bits[2]);
@@ -312,7 +313,8 @@ public class PersonUtilities {
 					Integer age = Integer.parseInt(raw_person[1]);
 					Integer sex = Integer.parseInt(raw_person[2]);
 
-					Person a = new Person(p_id, homeCoord, homeCoord, null, h, world);
+					homeCoordCopy = new Coordinate(homeCoord.x, homeCoord.y, homeCoord.z);
+					Person a = new Person(p_id, homeCoordCopy, homeCoordCopy, null, h, world);
 					
 					a.addIntegerAttribute("sex", sex);
 					a.addIntegerAttribute("age", age);

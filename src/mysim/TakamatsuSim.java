@@ -80,6 +80,7 @@ public class TakamatsuSim extends SimState {
 	double decayParam = -1;
 */	public static double speed_pedestrian = 1.5 * 60;
 	public static double speed_vehicle = 4 * 60;
+	public static double rayleigh_sigma = 8;
 
 	
 	/////////////// Data Sources ///////////////////////////////////////
@@ -134,7 +135,7 @@ public class TakamatsuSim extends SimState {
 	public Bag terminus_points = new Bag();
 
 	MediaInstance media = new MediaInstance();
-	public ArrayList <Person> agents = new ArrayList <Person> (200000);
+	public ArrayList <Person> agents = new ArrayList <Person> ();
 	public Network agentSocialNetwork = new Network();
 	
 	public GeometryFactory fa = new GeometryFactory();
