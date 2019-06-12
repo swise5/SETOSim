@@ -45,8 +45,8 @@ public class PopulationSynthesis {
 
 	String demoFilename = "TakamatsuDemoBasic.tsv";
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
-	String roadsFilename = "roadsCleanSubset.shp";
-	String buildingsFilename = "centralBuildings/buildings.shp";
+	String roadsFilename = "RitsurinDemo/RitsurinRoads.shp";
+	String buildingsFilename = "RitsurinDemo/Ritsurin.shp";
 
 	int targetNumIndividualsToGenerate = 140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
 	int targetNumHouseholdsToGenerate =  68700;//197030 ;

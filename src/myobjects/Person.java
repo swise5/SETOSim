@@ -10,14 +10,11 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import mysim.TakamatsuSim;
-import utilities.PopulationSynthesis;
 import sim.engine.SimState;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
-import sim.util.geo.AttributeValue;
 import sim.util.geo.MasonGeometry;
-import swise.agents.MobileAgent;
 import swise.agents.TrafficAgent;
 import swise.agents.communicator.Communicator;
 import swise.agents.communicator.Information;
@@ -39,6 +36,7 @@ public class Person extends TrafficAgent implements Communicator {
 	GeomVectorField space = null;
 	double enteredRoadSegment = -1;
 	double minSpeed = 7;
+	double riskToleranceParam = 100; // meters
 	
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	
@@ -60,10 +58,15 @@ public class Person extends TrafficAgent implements Communicator {
 
 		// other utilities
 		this.world = world;
+		
+		// set up the speed based on whether the individual has a vehicle or is walking
 		if(world.random.nextDouble() < .1) 
 			this.speed = TakamatsuSim.speed_vehicle;
-		else
+		else if(age > 1 && age < 12)
 			this.speed = TakamatsuSim.speed_pedestrian;
+		else
+			this.speed = TakamatsuSim.speed_elderlyYoung;
+		
 		this.addIntegerAttribute("speed", (int)this.speed);
 		
 		// inject the agent into the Edge where it is starting
@@ -109,6 +112,19 @@ public class Person extends TrafficAgent implements Communicator {
 		return x;
 	}
 	
+	public double assessRisk(){
+		
+		double minDist = Double.MAX_VALUE;
+		for(Object o: world.waterLayer.getGeometries()){
+			MasonGeometry mg = (MasonGeometry) o;
+			double d = mg.geometry.getCoordinate().distance(this.myHousehold.home);
+			if(d < minDist)
+				minDist = d;
+		}
+		
+		return minDist / riskToleranceParam;
+	}
+	
 	/**
 	 * Assuming the Person is not interrupted by intervening events, they are activated
 	 * roughly when it is time to begin moving toward the next Task
@@ -121,7 +137,7 @@ public class Person extends TrafficAgent implements Communicator {
 		world.incrementHeatmap(this.geometry);
 
 		// either update the evacuation time or possibly begin evacuating
-		if(!evacuating && state.random.nextDouble() < .05){
+		if(!evacuating && state.random.nextDouble() > assessRisk()){
 			beginEvacuating(time);
 			state.schedule.scheduleOnce(time + (int)rayleighDistrib(world.random.nextDouble()), this);
 			return;
@@ -135,8 +151,13 @@ public class Person extends TrafficAgent implements Communicator {
 			this.navigate(world.resolution);
 		}
 		else {
-			Bag ns = world.roadNodes;
-			targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
+			
+			if((int)time % 1440 >= 900)
+				targetDestination = myHousehold.home;
+			else{				
+				Bag ns = world.roadNodes;
+				targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
+			}
 		}
 
 		// the Person has arrived at a Shelter - try to enter it!
@@ -165,6 +186,13 @@ public class Person extends TrafficAgent implements Communicator {
 				beginEvacuating(evacuatingTime); // force a reassessment
 				if(targetShelter == null){ // just stay on the road and cry pitiably, I guess??
 					evacuatingTime = time - evacuatingTime;
+					return;
+				}
+				// if that shelter is also full, wait a bit to think it over, then try again
+				else if(!targetShelter.roomForN(1)){
+					fullShelters.add(targetShelter);
+					path = null;
+					world.schedule.scheduleOnce(time + (int) rayleighDistrib(world.random.nextDouble()), this);
 					return;
 				}
 			}

@@ -17,17 +17,21 @@ import sim.display.Display2D;
 import sim.display.GUIState;
 import sim.engine.SimState;
 import sim.engine.Steppable;
+import sim.field.geo.GeomVectorField;
 import sim.portrayal.geo.GeomPortrayal;
 import sim.portrayal.geo.GeomVectorFieldPortrayal;
 import sim.portrayal.grid.FastValueGridPortrayal2D;
 import sim.portrayal.DrawInfo2D;
 import sim.portrayal.FieldPortrayal2D;
+import sim.util.Bag;
 import sim.util.gui.SimpleColorMap;
 import sim.util.media.chart.TimeSeriesChartGenerator;
 import swise.disasters.Wildfire;
 import swise.visualization.AttributePolyPortrayal;
 import swise.visualization.FilledPolyPortrayal;
 import swise.visualization.GeomNetworkFieldPortrayal;
+import swise.visualization.TextPortrayal;
+import utilities.InputCleaning;
 
 /**
  * A visualization of the Hotspots simulation.
@@ -41,12 +45,12 @@ public class TakamatsuGUI extends GUIState {
 	public JFrame displayFrame;
 	
 	// Map visualization objects
-	private GeomVectorFieldPortrayal map = new GeomVectorFieldPortrayal();
+	private GeomVectorFieldPortrayal water = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal roads = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal buildings = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal agents = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal shelters = new GeomVectorFieldPortrayal();
-	
+	private GeomVectorFieldPortrayal names = new GeomVectorFieldPortrayal();
 	
 	private GeomNetworkFieldPortrayal network = new GeomNetworkFieldPortrayal();
 	private FastValueGridPortrayal2D heatmap = new FastValueGridPortrayal2D();	
@@ -83,15 +87,16 @@ public class TakamatsuGUI extends GUIState {
 	public void setupPortrayals() {
 		
 		TakamatsuSim world = (TakamatsuSim) state;
-		map.setField(world.baseLayer);
-		map.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
-		map.setImmutableField(true);
+		water.setField(world.waterLayer);
+		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
+		water.setImmutableField(true);
 		
 		roads.setField(world.roadLayer);
-		roads.setPortrayalForAll(new GeomPortrayal(new Color(100,100,100), false));
+		roads.setPortrayalForAll(new GeomPortrayal(new Color(180,180,180), false));
+		roads.setImmutableField(true);
 		
 		buildings.setField(world.buildingLayer);
-		buildings.setPortrayalForAll(new GeomPortrayal(new Color(190,190,190), true));
+		buildings.setPortrayalForAll(new GeomPortrayal(new Color(210,210,210), true));
 		buildings.setImmutableField(true);
 		
 		agents.setField(world.agentsLayer);
@@ -101,6 +106,11 @@ public class TakamatsuGUI extends GUIState {
 		
 		shelters.setField(world.shelterLayer);
 		shelters.setPortrayalForAll(new GeomPortrayal(new Color(255,255,0,90), true));
+		shelters.setImmutableField(true);;
+		
+		names.setField(world.namesLayer);
+		names.setPortrayalForAll(new TextPortrayal("name", new Color(50,50,50), 14));
+	//	names.setImmutableField(true);
 		
 /*		network.setField( world.agentsLayer, world.agentSocialNetwork );
 		network.setImmutableField(false);
@@ -126,10 +136,11 @@ public class TakamatsuGUI extends GUIState {
 		display = new Display2D((int)(1.5 * sim.grid_width), (int)(1.5 * sim.grid_height), this);
 
 		display.attach(heatmap, "Heatmap", false);
-		display.attach(map, "Landscape");
+		display.attach(water, "Water");
 		display.attach(buildings, "Buildings");
 		display.attach(shelters, "Shelters");
 		display.attach(roads, "Roads");
+		display.attach(names, "Names");
 		//display.attach(network, "Network", false);
 		display.attach(agents, "Agents");
 		
@@ -152,7 +163,7 @@ public class TakamatsuGUI extends GUIState {
 		        	Date startDate;
 					try {
 						startDate = ft.parse("00:00 GMT");
-				        Date time = new Date((int)state.schedule.getTime() * 5000 + startDate.getTime());
+				        Date time = new Date((int)state.schedule.getTime() * 60000 + startDate.getTime());
 				        s = ft.format(time);	
 					} catch (ParseException e) {
 						e.printStackTrace();
@@ -196,7 +207,7 @@ public class TakamatsuGUI extends GUIState {
 	}
 
 	/** Returns the name of the simulation */
-	public static String getName() { return "TakamatsuSim"; }
+	public static String getName() { return "SETOSim"; }
 
 	/** Allows for users to modify the simulation using the model tab */
 	public Object getSimulationInspectedObject() { return state; }

@@ -79,8 +79,9 @@ public class TakamatsuSim extends SimState {
 	double observationDistance = -1;
 	double decayParam = -1;
 */	public static double speed_pedestrian = 1.5 * 60;
-	public static double speed_vehicle = 4 * 60;
-	public static double rayleigh_sigma = 8;
+	public static double speed_elderlyYoung = 1 * 60; 
+	public static double speed_vehicle = 5.5 * 60; // m per s, ~20kph
+	public static double rayleigh_sigma = 8; // from Wang et al, http://dx.doi.org/10.1016/j.trc.2015.11.010
 
 	
 	/////////////// Data Sources ///////////////////////////////////////
@@ -88,8 +89,9 @@ public class TakamatsuSim extends SimState {
 	String dirName = "/Users/swise/Projects/hitomi/data/";//"/Users/swise/Google Drive/GTD-projects/ROR/Hitomi_Nakanishi/data/";
 	
 	public static String communicatorFilename = "communicatorEvents.txt";
-	public static String agentFilename = "synthPop_hh_1560214490851.txt";
-
+	public static String agentFilename = "RitsurinDemo/synthPop_Ritsurin.txt";
+	public static String regionalNamesFilename = "RitsurinDemo/regionalNames.shp";
+	
 	String record_speeds_filename = "speeds/speeds", 
 			record_sentiment_filename = "sentiments/sentiment",
 			record_heatmap_filename = "heatmaps/heatmap",
@@ -102,11 +104,12 @@ public class TakamatsuSim extends SimState {
 	
 	/////////////// Containers ///////////////////////////////////////
 
-	public GeomVectorField baseLayer = new GeomVectorField(grid_width, grid_height);
+	public GeomVectorField waterLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField roadLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField buildingLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField agentsLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField shelterLayer = new GeomVectorField(grid_width, grid_height);
+	public GeomVectorField namesLayer = new GeomVectorField(grid_width, grid_height);
 	
 	public GeomVectorField networkLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField networkEdgeLayer = new GeomVectorField(grid_width, grid_height);	
@@ -177,9 +180,10 @@ public class TakamatsuSim extends SimState {
 			///////////// READING IN DATA ////////////////
 			//////////////////////////////////////////////
 		
-			InputCleaning.readInVectorLayer(baseLayer, dirName + "water.shp", "water", new Bag());
-			InputCleaning.readInVectorLayer(buildingLayer, dirName + "centralBuildings/buildings.shp", "buildings", new Bag());
-			InputCleaning.readInVectorLayer(roadLayer, dirName + "roadsCleanSubset.shp", "road network", new Bag());
+			InputCleaning.readInVectorLayer(waterLayer, dirName + "TakamatsuWater.shp", "water", new Bag());
+			InputCleaning.readInVectorLayer(buildingLayer, dirName + "RitsurinDemo/Ritsurin.shp", "buildings", new Bag());
+			InputCleaning.readInVectorLayer(roadLayer, dirName + "RitsurinDemo/RitsurinRoads.shp", "road network", new Bag());
+			
 			
 			GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
 			Bag shelterAtts = new Bag();
@@ -281,15 +285,17 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
-			agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
+			//agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
 			//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 			for(Person p: agents){
 				agentsLayer.addGeometry(p);
 			}
 
+			InputCleaning.readInVectorLayer(namesLayer, dirName + regionalNamesFilename, "name", new Bag());
+
 
 			// reset MBRS in case it got messed up during all the manipulation
-			baseLayer.setMBR(MBR);
+			waterLayer.setMBR(MBR);
 			buildingLayer.setMBR(MBR);
 			roadLayer.setMBR(MBR);			
 			networkLayer.setMBR(MBR);
@@ -298,6 +304,7 @@ public class TakamatsuSim extends SimState {
 			agentsLayer.setMBR(MBR);
 			shelterLayer.setMBR(MBR);
 			heatmap.setMBR(MBR);
+			namesLayer.setMBR(MBR);
 			
 			System.out.println("done");
 
@@ -636,7 +643,7 @@ public class TakamatsuSim extends SimState {
 	
 	// reset the agent layer's MBR
 	public void resetLayers(){
-		MBR = baseLayer.getMBR();
+		MBR = waterLayer.getMBR();
 		//MBR.init(501370, 521370, 4292000, 4312000);
 		this.agentsLayer.setMBR(MBR);
 		this.roadLayer.setMBR(MBR);
