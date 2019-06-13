@@ -36,7 +36,7 @@ public class Person extends TrafficAgent implements Communicator {
 	GeomVectorField space = null;
 	double enteredRoadSegment = -1;
 	double minSpeed = 7;
-	double riskToleranceParam = 100; // meters
+	double riskToleranceParam = 500; // meters
 	
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	

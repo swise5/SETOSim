@@ -11,6 +11,7 @@ import java.nio.channels.FileLock;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map.Entry;
 
 import sim.engine.SimState;
@@ -105,6 +106,7 @@ public class TakamatsuSim extends SimState {
 	/////////////// Containers ///////////////////////////////////////
 
 	public GeomVectorField waterLayer = new GeomVectorField(grid_width, grid_height);
+	public GeomVectorField floodedLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField roadLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField buildingLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField agentsLayer = new GeomVectorField(grid_width, grid_height);
@@ -180,7 +182,9 @@ public class TakamatsuSim extends SimState {
 			///////////// READING IN DATA ////////////////
 			//////////////////////////////////////////////
 		
-			InputCleaning.readInVectorLayer(waterLayer, dirName + "TakamatsuWater.shp", "water", new Bag());
+			InputCleaning.readInVectorLayer(waterLayer, dirName + "TakamatsuWaterAll.shp", "water", new Bag());
+			InputCleaning.readInVectorLayer(floodedLayer, dirName + "TakamatsuWaterFlooded.shp", "water", new Bag());
+			
 			InputCleaning.readInVectorLayer(buildingLayer, dirName + "RitsurinDemo/Ritsurin.shp", "buildings", new Bag());
 			InputCleaning.readInVectorLayer(roadLayer, dirName + "RitsurinDemo/RitsurinRoads.shp", "road network", new Bag());
 			
@@ -188,7 +192,7 @@ public class TakamatsuSim extends SimState {
 			GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
 			Bag shelterAtts = new Bag();
 			shelterAtts.add("parkingNum"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY");
-			InputCleaning.readInVectorLayer(shelterRaw, dirName + "shelters.shp", "shelters", shelterAtts);
+			InputCleaning.readInVectorLayer(shelterRaw, dirName + "shelters/sheltersUnion.shp", "shelters", shelterAtts);
 			
 			//////////////////////////////////////////////
 			////////////////// CLEANUP ///////////////////
@@ -285,7 +289,7 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
-			//agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
+			agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
 			//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 			for(Person p: agents){
 				agentsLayer.addGeometry(p);
@@ -381,6 +385,27 @@ public class TakamatsuSim extends SimState {
 			// set up the evacuation orders to be inserted into the social media environment
 //			setupCommunicators(dirName + communicatorFilename);
 		
+			// schedule the flooding to happen
+			
+			Steppable floodScheduler = new Steppable(){
+
+				@Override
+				public void step(SimState arg0) {
+					waterLayer.clear();// = new GeomVectorField(grid_width, grid_height);
+					HashSet <Object> roadsImpacted = new HashSet <Object> ();
+					for(Object o: floodedLayer.getGeometries()){
+						MasonGeometry mg = (MasonGeometry) o;
+						waterLayer.addGeometry(mg);
+				//		Bag b = networkEdgeLayer.getTouchingObjects(mg);
+				//		roadsImpacted.addAll(b);
+					}
+					waterLayer.setMBR(MBR);
+					waterLayer.updateSpatialIndex();
+				}
+				
+			};
+			schedule.scheduleOnce(60 * 1, floodScheduler);
+			
 			// seed the simulation randomly
 			seedRandom(System.currentTimeMillis());
 
