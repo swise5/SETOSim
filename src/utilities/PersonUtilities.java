@@ -281,7 +281,11 @@ public class PersonUtilities {
 
 			HashMap <String, Person> agentNameMapping = new HashMap <String, Person> ();
 			
+			int myIndex  = 0;
 			while ((s = agentData.readLine()) != null) {
+				if(myIndex % 100 == 0)
+					System.out.print(".");
+				myIndex++;
 				String[] bits = s.split("\t");
 				
 				// recreate the Person from the household records
@@ -305,7 +309,7 @@ public class PersonUtilities {
 				Integer numHouseholdMembers = Integer.parseInt(bits[2]);
 								
 				// read in each Household member and add them to the Household
-				for(int i = 3; i < numHouseholdMembers; i++){
+				for(int i = 3; i < bits.length; i++){
 
 					String [] raw_person = bits[i].split(":");
 					
