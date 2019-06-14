@@ -283,6 +283,8 @@ public class PersonUtilities {
 			
 			int myIndex  = 0;
 			while ((s = agentData.readLine()) != null) {
+				if(world.random.nextDouble() < .9) // 10% sample 
+					continue; 
 				if(myIndex % 100 == 0)
 					System.out.print(".");
 				myIndex++;

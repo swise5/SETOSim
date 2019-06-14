@@ -41,6 +41,7 @@ public class Person extends TrafficAgent implements Communicator {
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	
 	boolean evacuating = false;
+	boolean evacuatingCompleted = false;
 	double evacuatingTime = -1;
 	Shelter targetShelter = null;
 
@@ -175,7 +176,7 @@ public class Person extends TrafficAgent implements Communicator {
 					System.out.println("wut");
 				// set the final evacuating time!
 				evacuatingTime = time - evacuatingTime;
-				
+				evacuatingCompleted = true;
 				return;
 			}
 			
@@ -185,7 +186,8 @@ public class Person extends TrafficAgent implements Communicator {
 				System.out.println("Shelter is full! " + myID);
 				beginEvacuating(evacuatingTime); // force a reassessment
 				if(targetShelter == null){ // just stay on the road and cry pitiably, I guess??
-					evacuatingTime = time - evacuatingTime;
+					//evacuatingTime = time - evacuatingTime;
+					evacuatingCompleted = true;
 					return;
 				}
 				// if that shelter is also full, wait a bit to think it over, then try again
@@ -407,5 +409,7 @@ public class Person extends TrafficAgent implements Communicator {
 		return 1;
 	}
 
-	public String getMyID(){ return this.myID; }
+	public boolean evacuatingCompleted(){ return evacuatingCompleted; }
+	public String getMyID(){ return this.myID; }	
+	public int getAge(){ return this.age; }
 }
