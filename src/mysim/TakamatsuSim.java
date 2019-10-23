@@ -33,11 +33,11 @@ import sim.util.geo.PointMoveTo;
 import swise.agents.communicator.Communicator;
 import swise.agents.communicator.Information;
 import swise.disasters.Wildfire;
-import swise.objects.AStar;
 import swise.objects.NetworkUtilities;
 import swise.objects.PopSynth;
 import swise.objects.network.GeoNode;
 import swise.objects.network.ListEdge;
+import utilities.AStar;
 import utilities.InputCleaning;
 import utilities.PersonUtilities;
 import utilities.RoadNetworkUtilities;
@@ -96,7 +96,7 @@ public class TakamatsuSim extends SimState {
 	String record_speeds_filename = "speeds/speeds", 
 			record_sentiment_filename = "sentiments/sentiment",
 			record_heatmap_filename = "heatmaps/heatmap",
-			record_info_filename = "infos/info";
+			record_info_filename = "infos/TESTINGinfo";
 
 	BufferedWriter record_speeds, record_sentiment, record_heatmap;
 	public BufferedWriter record_info;
@@ -133,6 +133,8 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Objects //////////////////////////////////////////////
 
+	
+	public AStar pathfinder;
 	
 	public Bag roadNodes = new Bag();
 	public Network roads = new Network(false);
@@ -289,6 +291,12 @@ public class TakamatsuSim extends SimState {
 
 			System.gc();
 			
+			pathfinder = new AStar();
+			
+			/////////////////////
+			///////// Set up Persons ///////////
+			/////////////////////
+		
 			agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
 			//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 			for(Person p: agents){

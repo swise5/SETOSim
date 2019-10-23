@@ -28,6 +28,7 @@ public class Person extends TrafficAgent implements Communicator {
 	Coordinate work;
 	int age; // years
 	int sex; // 0 for female, 1 for male, ++ for other
+	int wayfindingMechanism = 0; // 0 for shortest path, 1 for most familiar path, 2 for hazard map paths, 3 for fuzzy wayfinding
 	TakamatsuSim world;
 	String myID;
 
@@ -337,7 +338,7 @@ public class Person extends TrafficAgent implements Communicator {
 
 		// FINDING A PATH /////////////////////
 
-		path = pathfinder.astarPath(node, destinationNode, world.roads);
+		path = world.pathfinder.astarPath(node, destinationNode, world.roads);
 
 		// if it fails, give up
 		if (path == null){
