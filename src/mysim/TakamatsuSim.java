@@ -96,10 +96,12 @@ public class TakamatsuSim extends SimState {
 	String record_speeds_filename = "speeds/speeds", 
 			record_sentiment_filename = "sentiments/sentiment",
 			record_heatmap_filename = "heatmaps/heatmap",
-			record_info_filename = "infos/TESTINGinfo";
+			record_info_filename = "infos/bifurc_info";
 
 	BufferedWriter record_speeds, record_sentiment, record_heatmap;
 	public BufferedWriter record_info;
+	
+	public HashMap <String, Double> typeWeighting;
 
 	//// END Data Sources ////////////////////////
 	
@@ -155,6 +157,9 @@ public class TakamatsuSim extends SimState {
 	
 	public int numEvacuated = 0;
 	public int numDied = 0;
+	
+	public int shelterReportCounter = -1;
+	public HashMap <Shelter, ArrayList <Integer>> shelterReport = new HashMap <Shelter, ArrayList <Integer>> ();
 	
 	/////////////// END Objects //////////////////////////////////////////
 
@@ -237,6 +242,9 @@ public class TakamatsuSim extends SimState {
 					// set it as being (initially, at least) "open"
 					ListEdge edge = (ListEdge) ed;
 					((MasonGeometry)edge.info).addStringAttribute("open", "OPEN");
+					double myLength = ((MasonGeometry)edge.info).geometry.getLength();
+					((MasonGeometry)edge.info).addDoubleAttribute("length", myLength);
+					
 					networkEdgeLayer.addGeometry( (MasonGeometry) edge.info);
 					roadLayer.addGeometry((MasonGeometry) edge.info);
 					((MasonGeometry)edge.info).addAttribute("ListEdge", edge);
@@ -253,6 +261,11 @@ public class TakamatsuSim extends SimState {
 
 			}
 
+			typeWeighting = new HashMap <String, Double> ();
+			typeWeighting.put("motorway", .5);
+			typeWeighting.put("primary", .5);
+			typeWeighting.put("trunk", .5);
+			
 			// add shelter entrance info
 			
 			for(Object o: shelterRaw.getGeometries()){
@@ -413,6 +426,33 @@ public class TakamatsuSim extends SimState {
 				
 			};
 		//	schedule.scheduleOnce(60 * 1, floodScheduler);
+
+			for(Object o: shelterLayer.getGeometries()){
+				Shelter s = (Shelter) o;
+				shelterReport.put(s, new ArrayList <Integer> ());
+			}
+			
+			Steppable shelterReporter = new Steppable(){
+
+				@Override
+				public void step(SimState arg0) {
+					shelterReportCounter++;
+					for(Object o: shelterLayer.getGeometries()){
+						Shelter s = (Shelter) o;
+						int currentSize = s.currentPopulation();
+						shelterReport.get(s).add(currentSize);
+/*						ArrayList <Integer> count = shelterReport.get(s);
+						if(shelterReportCounter == 0)
+							count.add(0);
+						else
+							count.add(currentSize - count.get(shelterReportCounter - 1));
+							*/
+					}
+					
+				}
+				
+			};
+			this.schedule.scheduleRepeating(shelterReporter, 10);
 			
 			// seed the simulation randomly
 			seedRandom(System.currentTimeMillis());
@@ -500,6 +540,14 @@ public class TakamatsuSim extends SimState {
 
 			// write a header
 			record_heatmap.write(myHeatmap.getWidth() + "\t" + myHeatmap.getHeight() + "\t" + (int)schedule.getTime() + "\n");
+			for(Shelter s: shelterReport.keySet()){
+				ArrayList <Integer> sigh = shelterReport.get(s);
+				String blah = "";
+				for(Integer ugh: sigh){
+					blah += ugh + "\t";
+				}
+				record_heatmap.write(blah + "\n");
+			}
 			for(int i = 0; i < myHeatmap.getWidth(); i++){
 				String output = "";
 				for(int j = 0; j < myHeatmap.getHeight(); j++){

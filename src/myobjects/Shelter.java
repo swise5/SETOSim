@@ -64,4 +64,8 @@ public class Shelter extends SpatialAgent {
 	double getArea(){
 		return geometry.getArea();
 	}
+	
+	public int currentPopulation(){
+		return currentlyPresent.size();
+	}
 }

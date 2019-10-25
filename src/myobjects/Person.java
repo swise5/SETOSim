@@ -55,11 +55,14 @@ public class Person extends TrafficAgent implements Communicator {
 		this.space.addGeometry(this);
 		this.isMovable = true;
 
-		this.myID = id;
-		
+		this.myID = id;		
 
 		// other utilities
 		this.world = world;
+		
+		// set the wayfinding mechanism based on probability
+		if(world.random.nextDouble() < .8)
+			this.wayfindingMechanism = 1;
 		
 		// set up the speed based on whether the individual has a vehicle or is walking
 		if(world.random.nextDouble() < .1) 
@@ -338,7 +341,10 @@ public class Person extends TrafficAgent implements Communicator {
 
 		// FINDING A PATH /////////////////////
 
-		path = world.pathfinder.astarPath(node, destinationNode, world.roads);
+		if(this.wayfindingMechanism == 0)
+			path = world.pathfinder.astarPath(node, destinationNode, world.roads);
+		else
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting);
 
 		// if it fails, give up
 		if (path == null){
