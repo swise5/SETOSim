@@ -454,6 +454,7 @@ public class TakamatsuSim extends SimState {
 			};
 			this.schedule.scheduleRepeating(shelterReporter, 10);
 			
+			
 			// seed the simulation randomly
 			seedRandom(System.currentTimeMillis());
 
@@ -546,6 +547,7 @@ public class TakamatsuSim extends SimState {
 				for(Integer ugh: sigh){
 					blah += ugh + "\t";
 				}
+				blah += s.getCapacity();
 				record_heatmap.write(blah + "\n");
 			}
 			for(int i = 0; i < myHeatmap.getWidth(); i++){
@@ -693,7 +695,7 @@ public class TakamatsuSim extends SimState {
 			}
 			if(storage.size() > 0)
 				schedule.scheduleOnce(storage.get(0).getTime(), this);
-		}
+			}
 		
 	}
 	

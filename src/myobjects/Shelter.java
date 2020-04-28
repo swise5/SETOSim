@@ -44,6 +44,10 @@ public class Shelter extends SpatialAgent {
 		entrance = (Coordinate)gn.geometry.getCoordinate().clone();
 		
 	}
+
+	public int getCapacity(){
+		return capacity;
+	}
 	
 	boolean roomForN(int n){
 		return capacity - n >= currentlyPresent.size();

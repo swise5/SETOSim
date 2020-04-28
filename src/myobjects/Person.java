@@ -11,6 +11,7 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import mysim.TakamatsuSim;
 import sim.engine.SimState;
+import sim.engine.Steppable;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
@@ -47,7 +48,7 @@ public class Person extends TrafficAgent implements Communicator {
 	Shelter targetShelter = null;
 
 	
-	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, TakamatsuSim world){
+	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, int age, int sex, TakamatsuSim world){
 
 		// add it to the space
 		super((new GeometryFactory()).createPoint(position));
@@ -56,6 +57,8 @@ public class Person extends TrafficAgent implements Communicator {
 		this.isMovable = true;
 
 		this.myID = id;		
+		this.age = age;
+		this.sex = sex;
 
 		// other utilities
 		this.world = world;
@@ -419,4 +422,5 @@ public class Person extends TrafficAgent implements Communicator {
 	public boolean evacuatingCompleted(){ return evacuatingCompleted; }
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
+	
 }
