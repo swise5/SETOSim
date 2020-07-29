@@ -87,16 +87,16 @@ public class TakamatsuSim extends SimState {
 	
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/RitsurinDemo/";
+	String dirName = "/Users/swise/Projects/hitomi/data/";
 	
-	public static String communicatorFilename = "communicatorEvents.txt";
-	public static String agentFilename = "synthPop_Ritsurin.txt";
-	public static String regionalNamesFilename = "regionalNames.shp";
+	public static String communicatorFilename = "RitsurinDemo/communicatorEvents.txt";
+	public static String agentFilename = "RitsurinDemo/synthPop_Ritsurin.txt";
+	public static String regionalNamesFilename = "RitsurinDemo/regionalNames.shp";
 	
-	String record_speeds_filename = "speeds/speeds", 
-			record_sentiment_filename = "sentiments/sentiment",
-			record_heatmap_filename = "heatmaps/heatmap",
-			record_info_filename = "infos/bifurc_info";
+	String record_speeds_filename = "elderDemo/speeds", 
+			record_sentiment_filename = "elderDemo/sentiment",
+			record_heatmap_filename = "elderDemo/heatmap",
+			record_info_filename = "elderDemo/bifurc_info";
 
 	BufferedWriter record_speeds, record_sentiment, record_heatmap;
 	public BufferedWriter record_info;
@@ -189,17 +189,17 @@ public class TakamatsuSim extends SimState {
 			///////////// READING IN DATA ////////////////
 			//////////////////////////////////////////////
 		
-			InputCleaning.readInVectorLayer(waterLayer, dirName + "TakamatsuWaterAll.shp", "water", new Bag());
-			InputCleaning.readInVectorLayer(floodedLayer, dirName + "TakamatsuWaterFlooded.shp", "water", new Bag());
+			InputCleaning.readInVectorLayer(waterLayer, dirName + "RitsurinDemo/TakamatsuWaterAll.shp", "water", new Bag());
+			InputCleaning.readInVectorLayer(floodedLayer, dirName + "RitsurinDemo/TakamatsuWaterFlooded.shp", "water", new Bag());
 			
-			InputCleaning.readInVectorLayer(buildingLayer, dirName + "Ritsurin.shp", "buildings", new Bag());
-			InputCleaning.readInVectorLayer(roadLayer, dirName + "RitsurinRoads.shp", "road network", new Bag());
+			InputCleaning.readInVectorLayer(buildingLayer, dirName + "RitsurinDemo/Ritsurin.shp", "buildings", new Bag());
+			InputCleaning.readInVectorLayer(roadLayer, dirName + "RitsurinDemo/RitsurinRoads.shp", "road network", new Bag());
 			
 			
 			GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
 			Bag shelterAtts = new Bag();
 			shelterAtts.add("parkingNum"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY");
-			InputCleaning.readInVectorLayer(shelterRaw, dirName + "sheltersUnion.shp", "shelters", shelterAtts);
+			InputCleaning.readInVectorLayer(shelterRaw, dirName + "RitsurinDemo/sheltersUnion.shp", "shelters", shelterAtts);
 			
 			//////////////////////////////////////////////
 			////////////////// CLEANUP ///////////////////
@@ -594,7 +594,8 @@ public class TakamatsuSim extends SimState {
 				//if(a.getEvacuatingTime() > 0 && !a.evacuatingCompleted())
 				//	record_info.write(myID + "\t" + "INCOMPLETE_" + a.getEvacuatingTime() + "\t" + "\n");
 				//else
-				record_info.write(myID + "\t" +  a.getAge() + "\t" + completed + "\t" + a.getEvacuatingTime() + "\t" + "\n");
+				record_info.write(myID + "\t" +  a.getAge() + "\t" + completed + "\t" + a.getEvacuatingTime() + "\t"
+						+ a.getEvacuating() + "\t" + a.getHome().toString() + "\n");//a.getHistory() + "\n");
 			}
 
 			this.record_info.close();

@@ -41,8 +41,9 @@ public class Person extends TrafficAgent implements Communicator {
 	double riskToleranceParam = 100; // meters
 	
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
+	String myHistory = "";
 	
-	boolean evacuating = false;
+	int evacuating = -1; // -1 means not evacuting; 0 means sheltering in place; 1 means seeking out shelter elsewhere
 	boolean evacuatingCompleted = false;
 	double evacuatingTime = -1;
 	Shelter targetShelter = null;
@@ -143,9 +144,12 @@ public class Person extends TrafficAgent implements Communicator {
 		// find the current time
 		double time = state.schedule.getTime();
 		world.incrementHeatmap(this.geometry);
+		
+//		if(time - evacuatingTime > 200)
+//			System.out.println("whoa there, that's a long trip!");
 
 		// either update the evacuation time or possibly begin evacuating
-		if(!evacuating && state.random.nextDouble() > assessRisk()){
+		if(evacuating < 0 && state.random.nextDouble() > assessRisk()){
 			beginEvacuating(time);
 			state.schedule.scheduleOnce(time + (int)rayleighDistrib(world.random.nextDouble()), this);
 			return;
@@ -169,7 +173,23 @@ public class Person extends TrafficAgent implements Communicator {
 		}
 
 		// the Person has arrived at a Shelter - try to enter it!
-		if(evacuating && path == null){
+		if(evacuating >= 0 && path == null){
+			
+			// might be sheltering at home - check!
+			if(targetShelter == null){
+				// sheltering at home and have just arrived! Stay here!
+				// remove them from the road network they're on
+				if(edge.getClass().equals(ListEdge.class))
+					((ListEdge)edge).removeElement(this);
+				
+				// set the final evacuating time!
+				evacuatingTime = time - evacuatingTime;
+				evacuatingCompleted = true;
+				
+				myHistory += "shelteringAtHome:" + time;
+				
+				return;
+			}
 			
 			// if there is room, successfully enter the Shelter
 			if(targetShelter.roomForN(1)){
@@ -184,6 +204,9 @@ public class Person extends TrafficAgent implements Communicator {
 				// set the final evacuating time!
 				evacuatingTime = time - evacuatingTime;
 				evacuatingCompleted = true;
+				
+				myHistory += "acceptedAtShelter:" + targetShelter.toString() + ":" + time;
+				
 				return;
 			}
 			
@@ -191,6 +214,9 @@ public class Person extends TrafficAgent implements Communicator {
 			else{
 				fullShelters.add(targetShelter);
 				System.out.println("Shelter is full! " + myID);
+				
+				myHistory += "rejectedAtShelter:" + targetShelter.toString() + ":" + time + "\t";
+				
 				beginEvacuating(evacuatingTime); // force a reassessment
 				if(targetShelter == null){ // just stay on the road and cry pitiably, I guess??
 					//evacuatingTime = time - evacuatingTime;
@@ -244,8 +270,11 @@ public class Person extends TrafficAgent implements Communicator {
 	 * @param myTime - the time at which the evacuation effort started
 	 */
 	void beginEvacuating(double myTime){
+		
+		myHistory += "beginEvacuting:" + myTime + "\t";
+		
 		evacuatingTime = myTime; // save it here as a record
-		evacuating = true;
+		
 		double myDistance = Double.MAX_VALUE;
 		MasonGeometry myShelter = null;
 		for(Object o: world.shelterLayer.getGeometries()){
@@ -260,18 +289,46 @@ public class Person extends TrafficAgent implements Communicator {
 		
 		// make sure that such a place exists!
 		if(myShelter == null){
-			System.out.println("No shelters with available space!");
+			
+			myHistory += "\tnoAvailableShelters";
+			System.out.println("No shelters with available space! Heading home instead");
 			targetShelter = null;
+			
+			targetDestination = myHousehold.home;
+			path = null;
+			headFor(targetDestination);
+			
+			evacuating = 0;
 			return;
 		}
+
 		/*GeoNode gn = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
 				world.resolution, world.networkLayer, 
 				world.networkEdgeLayer, world.fa);
 		targetDestination = gn.geometry.getCoordinate();
 		*/
 		targetDestination = ((Shelter)myShelter).getEntrance();
+		
+		// deciding on sheltering at home
+		double tempWeightingParam = Double.MAX_VALUE;//5000;//.5;
+		if(targetDestination.distance(this.getGeometry().getCoordinate()) > tempWeightingParam){
+//			tempWeightingParam * myHousehold.home.distance(this.getGeometry().getCoordinate())){
+			
+			targetDestination = myHousehold.home;
+			evacuating = 0;
+		}
+		
+		else {
+			targetShelter = (Shelter)myShelter;		
+			evacuating = 1;
+		}
+		
 		path = null;
-		targetShelter = (Shelter)myShelter;
+		headFor(targetDestination);
+		
+		if(path == null){
+			System.out.println("can't get there!!!");
+		}
 	}
 	
 	
@@ -422,5 +479,7 @@ public class Person extends TrafficAgent implements Communicator {
 	public boolean evacuatingCompleted(){ return evacuatingCompleted; }
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
-	
+	public String getHistory(){ return this.myHistory; }
+	public int getEvacuating(){ return this.evacuating; }
+	public Coordinate getHome(){ return this.myHousehold.home; }
 }

@@ -43,7 +43,7 @@ public class PopulationSynthesis {
 	
 	String dirName = "/Users/swise/Projects/hitomi/data/";
 
-	String demoFilename = "TakamatsuDemoBasic.tsv";
+	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
 	String roadsFilename = "RitsurinDemo/RitsurinRoads.shp";
 	String buildingsFilename = "RitsurinDemo/Ritsurin.shp";
@@ -658,6 +658,8 @@ public class PopulationSynthesis {
 				System.out.println("ERROR: demographic constraints improperly formatted, generation terminated");
 				return null; // complain and exit
 			}
+			
+			System.out.println(dirName + demoFilename);
 
 			// otherwise let's rock
 			double [] results = new double [(int)(maxAge / numYearsPerBin) * 2 + 2]; // add an extra 2 for the upper limit 
