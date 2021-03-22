@@ -94,45 +94,6 @@ public class Person extends TrafficAgent implements Communicator {
 		
 	}
 	
-	void placeOnEdge(Coordinate c){
-		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
-		
-		if(edge == null){
-			System.out.println("\tINIT_ERROR: no nearby edge");
-			return;
-		}
-			
-		GeoNode n1 = (GeoNode) edge.getFrom();
-		GeoNode n2 = (GeoNode) edge.getTo();
-		
-		if(n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
-			node = n1;
-		else 
-			node = n2;
-
-		segment = new LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry);
-		startIndex = segment.getStartIndex();
-		endIndex = segment.getEndIndex();
-		currentIndex = segment.indexOf(c);
-	}
-
-	public static double rayleighDistrib(double unif){
-		double x = TakamatsuSim.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
-		return x;
-	}
-	
-	public double assessRisk(){
-		
-		double minDist = Double.MAX_VALUE;
-		for(Object o: world.waterLayer.getGeometries()){
-			MasonGeometry mg = (MasonGeometry) o;
-			double d = mg.geometry.getCoordinate().distance(this.myHousehold.home);
-			if(d < minDist)
-				minDist = d;
-		}
-		
-		return minDist / riskToleranceParam;
-	}
 	
 	/**
 	 * Assuming the Person is not interrupted by intervening events, they are activated
@@ -244,27 +205,9 @@ public class Person extends TrafficAgent implements Communicator {
 		world.schedule.scheduleOnce(time+1, this);
 	}
 
-	public int navigate(double resolution){
-		if(path != null){
-			double time = 1;//speed;
-			while(path != null && time > 0){
-				time = move(time, speed, resolution);
-				if(segment != null)
-					world.updateRoadUseage(((MasonGeometry)edge.info).getStringAttribute("myid"));
-			}
-			
-			if(segment != null)
-				updateLoc(segment.extractPoint(currentIndex));				
-
-			if(time < 0){
-				return -1;
-			}
-			else
-				return 1;
-		}
-		return -1;
-	}
 	
+	// EVACUATION BEHAVIOURS
+
 	/**
 	 * 
 	 * @param myTime - the time at which the evacuation effort started
@@ -332,10 +275,28 @@ public class Person extends TrafficAgent implements Communicator {
 	}
 	
 	
-	public double estimateTravelTimeTo(Geometry g){
-		return(g.distance(this.geometry) / speed);
+	public static double rayleighDistrib(double unif){
+		double x = TakamatsuSim.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
+		return x;
 	}
 	
+	public double assessRisk(){
+		
+		double minDist = Double.MAX_VALUE;
+		for(Object o: world.waterLayer.getGeometries()){
+			MasonGeometry mg = (MasonGeometry) o;
+			double d = mg.geometry.getCoordinate().distance(this.myHousehold.home);
+			if(d < minDist)
+				minDist = d;
+		}
+		
+		return minDist / riskToleranceParam;
+	}
+	
+	
+	//
+	// COMMUNICATION
+	//
 	
 	public void addContact(Person contact, int weight){
 	}
@@ -351,10 +312,14 @@ public class Person extends TrafficAgent implements Communicator {
 	@Override
 	public void learnAbout(Object o, Information i) {
 		// TODO Auto-generated method stub
-		
 	}
 
-	public double getEvacuatingTime(){ return evacuatingTime; }
+	
+	//
+	// UTILITIES
+	//
+	
+	// NAVIGATION
 	
 	/**
 	 * Set up a course to take the Agent to the given coordinates
@@ -476,10 +441,61 @@ public class Person extends TrafficAgent implements Communicator {
 		return 1;
 	}
 
+	public double estimateTravelTimeTo(Geometry g){ return(g.distance(this.geometry) / speed); }
+
+	void placeOnEdge(Coordinate c){
+		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
+		
+		if(edge == null){
+			System.out.println("\tINIT_ERROR: no nearby edge");
+			return;
+		}
+			
+		GeoNode n1 = (GeoNode) edge.getFrom();
+		GeoNode n2 = (GeoNode) edge.getTo();
+		
+		if(n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
+			node = n1;
+		else 
+			node = n2;
+
+		segment = new LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry);
+		startIndex = segment.getStartIndex();
+		endIndex = segment.getEndIndex();
+		currentIndex = segment.indexOf(c);
+	}
+
+	public int navigate(double resolution){
+		if(path != null){
+			double time = 1;//speed;
+			while(path != null && time > 0){
+				time = move(time, speed, resolution);
+				if(segment != null)
+					world.updateRoadUseage(((MasonGeometry)edge.info).getStringAttribute("myid"));
+			}
+			
+			if(segment != null)
+				updateLoc(segment.extractPoint(currentIndex));				
+
+			if(time < 0){
+				return -1;
+			}
+			else
+				return 1;
+		}
+		return -1;
+	}
+	
+	//
+	// GETTERS AND SETTERS
+	//
+	
 	public boolean evacuatingCompleted(){ return evacuatingCompleted; }
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
 	public int getEvacuating(){ return this.evacuating; }
 	public Coordinate getHome(){ return this.myHousehold.home; }
+	public double getEvacuatingTime(){ return evacuatingTime; }	
+
 }
