@@ -48,6 +48,7 @@ public class PersonUtilities {
 			Coordinate myC = (Coordinate) mg.geometry.getCoordinate().clone();
 			// random sex, age between 0 and 100
 			Person a = new Person("Person"+i,myC,myC,myC, null, world.random.nextInt(21), world.random.nextInt(2), world);
+			a.setActivityNode(world.behaviourFramework.getEntryPoint());
 			agents.add(a);
 			
 			world.schedule.scheduleOnce(a);
@@ -94,6 +95,8 @@ public class PersonUtilities {
 				a.addIntegerAttribute("sex", sex);
 				a.addIntegerAttribute("age", age);
 				agentNameMapping.put(id, a);
+				a.setActivityNode(world.behaviourFramework.getEntryPoint());
+
 
 				agents.add(a);
 
@@ -267,11 +270,14 @@ public class PersonUtilities {
 					Integer sex = Integer.parseInt(raw_person[2]);
 
 					homeCoordCopy = new Coordinate(homeCoord.x, homeCoord.y, homeCoord.z);
+					
 					Person a = new Person(p_id, homeCoordCopy, homeCoordCopy, null, h, age, sex, world);
 					
 					a.addIntegerAttribute("sex", sex);
 					a.addIntegerAttribute("age", age);
 					agentNameMapping.put(id, a);
+					
+					a.setActivityNode(world.behaviourFramework.getEntryPoint());
 
 					agents.add(a);
 					world.schedule.scheduleOnce(a);

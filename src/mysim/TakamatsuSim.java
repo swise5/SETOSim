@@ -54,6 +54,7 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import ec.util.MersenneTwisterFast;
 import myobjects.Person;
 import myobjects.Shelter;
+import myobjects.TakamatsuBehaviour;
 
 /**
  * TakamatsuSim is the core of a simulation which projects the behavior of agents in the aftermath
@@ -79,7 +80,10 @@ public class TakamatsuSim extends SimState {
 	double comfortDistance = -1;
 	double observationDistance = -1;
 	double decayParam = -1;
-*/	public static double speed_pedestrian = 1.5 * 60;
+*/	
+	public static double ticks_per_hour = 60; // each tick is 1 minute
+	public static double ticks_per_day = ticks_per_hour * 24; // to save time later
+	public static double speed_pedestrian = 1.5 * 60;
 	public static double speed_elderlyYoung = 1 * 60; 
 	public static double speed_vehicle = 5.5 * 60; // m per s, ~20kph
 	public static double rayleigh_sigma = 2;//8; // from Wang et al, http://dx.doi.org/10.1016/j.trc.2015.11.010
@@ -160,6 +164,8 @@ public class TakamatsuSim extends SimState {
 	
 	public int shelterReportCounter = -1;
 	public HashMap <Shelter, ArrayList <Integer>> shelterReport = new HashMap <Shelter, ArrayList <Integer>> ();
+	
+	public TakamatsuBehaviour behaviourFramework;
 	
 	/////////////// END Objects //////////////////////////////////////////
 
@@ -305,14 +311,26 @@ public class TakamatsuSim extends SimState {
 			System.gc();
 			
 			pathfinder = new AStar();
-			
+						
 			/////////////////////
 			///////// Set up Persons ///////////
 			/////////////////////
 		
+			// first set up BehaviourFramework
+			behaviourFramework = new TakamatsuBehaviour(this);
+			
 			agents.addAll(PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename, schedule, this));
+			// TODO establish meaningful workplaces!!!
+			
 			//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
+			int numRoadNodes = roadNodes.size();
 			for(Person p: agents){
+				
+				// throwing this in here to make sure they are moving correctly
+				Coordinate workC = 
+						((GeoNode)roadNodes.get(random.nextInt(numRoadNodes))).geometry.getCoordinate();
+				p.setWorkLocation(workC);
+				
 				agentsLayer.addGeometry(p);
 			}
 

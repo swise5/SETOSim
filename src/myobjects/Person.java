@@ -19,19 +19,21 @@ import sim.util.geo.MasonGeometry;
 import swise.agents.TrafficAgent;
 import swise.agents.communicator.Communicator;
 import swise.agents.communicator.Information;
+import swise.behaviour.BehaviourNode;
 import swise.objects.network.GeoNode;
 import swise.objects.network.ListEdge;
 import utilities.RoadNetworkUtilities;
 
 public class Person extends TrafficAgent implements Communicator {
+
+	TakamatsuSim world;
+	String myID;
 	
 	Household myHousehold;
 	Coordinate work;
 	int age; // years
-	int sex; // 0 for female, 1 for male, ++ for other
+	int sex; // 0 for female, 1 for male, ++ for other as data becomes available
 	int wayfindingMechanism = 0; // 0 for shortest path, 1 for most familiar path, 2 for hazard map paths, 3 for fuzzy wayfinding
-	TakamatsuSim world;
-	String myID;
 
 	// movement utilities
 	Coordinate targetDestination = null;
@@ -43,10 +45,13 @@ public class Person extends TrafficAgent implements Communicator {
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	String myHistory = "";
 	
+	EvacuationPlan myPlan = null;
 	int evacuating = -1; // -1 means not evacuting; 0 means sheltering in place; 1 means seeking out shelter elsewhere
 	boolean evacuatingCompleted = false;
 	double evacuatingTime = -1;
 	Shelter targetShelter = null;
+	
+	BehaviourNode currentAction;
 
 	
 	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, int age, int sex, TakamatsuSim world){
@@ -101,6 +106,13 @@ public class Person extends TrafficAgent implements Communicator {
 	 */
 	@Override
 	public void step(SimState state) {
+		
+		double time = state.schedule.getTime();		
+		double delta = currentAction.next(this, time);
+		world.schedule.scheduleOnce(time+delta, this);
+	}
+
+	public void step_original(SimState state) {
 		
 		// find the current time
 		double time = state.schedule.getTime();
@@ -204,7 +216,6 @@ public class Person extends TrafficAgent implements Communicator {
 		
 		world.schedule.scheduleOnce(time+1, this);
 	}
-
 	
 	// EVACUATION BEHAVIOURS
 
@@ -498,4 +509,11 @@ public class Person extends TrafficAgent implements Communicator {
 	public Coordinate getHome(){ return this.myHousehold.home; }
 	public double getEvacuatingTime(){ return evacuatingTime; }	
 
+	public void setActivityNode(BehaviourNode bn){ this.currentAction = bn;}
+	public BehaviourNode getActivityNode(){ return this.currentAction;}
+	public boolean finishedPath(){ return path == null; }
+	
+	public void setWorkLocation(Coordinate c){
+		this.work = (Coordinate) c.clone();
+	}
 }
