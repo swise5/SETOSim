@@ -11,7 +11,6 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import mysim.TakamatsuSim;
 import sim.engine.SimState;
-import sim.engine.Steppable;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
@@ -22,7 +21,7 @@ import swise.agents.communicator.Information;
 import swise.behaviour.BehaviourNode;
 import swise.objects.network.GeoNode;
 import swise.objects.network.ListEdge;
-import utilities.RoadNetworkUtilities;
+import swise.objects.RoadNetworkUtilities;
 
 public class Person extends TrafficAgent implements Communicator {
 
@@ -36,20 +35,28 @@ public class Person extends TrafficAgent implements Communicator {
 	int wayfindingMechanism = 0; // 0 for shortest path, 1 for most familiar path, 2 for hazard map paths, 3 for fuzzy wayfinding
 
 	// movement utilities
+	Vehicle myVehicle = null;
 	Coordinate targetDestination = null;
 	GeomVectorField space = null;
 	double enteredRoadSegment = -1;
 	double minSpeed = 7;
-	double riskToleranceParam = 100; // meters
 	
 	ArrayList <MasonGeometry> fullShelters = new ArrayList <MasonGeometry> ();
 	String myHistory = "";
 	
+	public Person dependent = null;
+	public Person dependentOf = null;
+	
+	public boolean prepared = false;
+	
 	EvacuationPlan myPlan = null;
-	int evacuating = -1; // -1 means not evacuting; 0 means sheltering in place; 1 means seeking out shelter elsewhere
+	//int evacuating = TakamatsuBehaviour.notEvacuating;
 	boolean evacuatingCompleted = false;
 	double evacuatingTime = -1;
 	Shelter targetShelter = null;
+	double distanceEstimationWeighting = 2;
+	
+	public int turnedAwayFromShelterCount = 0;
 	
 	BehaviourNode currentAction;
 
@@ -72,11 +79,14 @@ public class Person extends TrafficAgent implements Communicator {
 		// set the wayfinding mechanism based on probability
 		if(world.random.nextDouble() < .8)
 			this.wayfindingMechanism = 1;
+
+		// establish if the person has a vehicle at their disposal
+		if(world.random.nextDouble() < .1) {
+			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world);
+		}
 		
-		// set up the speed based on whether the individual has a vehicle or is walking
-		if(world.random.nextDouble() < .1) 
-			this.speed = TakamatsuSim.speed_vehicle;
-		else if(age > 1 && age < 12)
+		// set up the speed based on agent age
+		if((age > 1 && age < 12 ) || !world.ageSpecificSpeeds) // if age is specific OR ages are turned off!
 			this.speed = TakamatsuSim.speed_pedestrian;
 		else
 			this.speed = TakamatsuSim.speed_elderlyYoung;
@@ -108,127 +118,39 @@ public class Person extends TrafficAgent implements Communicator {
 	public void step(SimState state) {
 		
 		double time = state.schedule.getTime();		
+		
+		// check for own home
+		if(!isEvacuating() && state.random.nextDouble() < assessRisk(this.myHousehold, time)){
+						
+			beginEvacuating();
+			
+			// if appropriate, encourage neighbours to evacuate
+			if(this.world.evacuationPolicy_neighbours)
+				promptNeighbours();
+			
+			return;
+		}
+		
 		double delta = currentAction.next(this, time);
 		world.schedule.scheduleOnce(time+delta, this);
 	}
 
-	public void step_original(SimState state) {
-		
-		// find the current time
-		double time = state.schedule.getTime();
-		world.incrementHeatmap(this.geometry);
-		
-//		if(time - evacuatingTime > 200)
-//			System.out.println("whoa there, that's a long trip!");
-
-		// either update the evacuation time or possibly begin evacuating
-		if(evacuating < 0 && state.random.nextDouble() > assessRisk()){
-			beginEvacuating(time);
-			state.schedule.scheduleOnce(time + (int)rayleighDistrib(world.random.nextDouble()), this);
-			return;
-		}
-		
-		// if the agent is already in transit, continue moving
-		if(targetDestination != null){
-			if(path == null){
-				headFor(targetDestination);
-			}
-			this.navigate(world.resolution);
+	void beginEvacuatingDependent() {
+		if(this.currentAction != world.behaviourFramework.travelToDependentNode) {
+			setActivityNode(world.behaviourFramework.travelToDependentNode);
+			if(this.evacuatingTime < 0)
+				this.evacuatingTime = world.schedule.getTime();
+			this.headFor(dependent.getHousehold().home);
 		}
 		else {
-			
-			if((int)time % 1440 >= 900)
-				targetDestination = myHousehold.home;
-			else{				
-				Bag ns = world.roadNodes;
-				targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
-			}
+			System.out.println("already doing it!");
 		}
-
-		// the Person has arrived at a Shelter - try to enter it!
-		if(evacuating >= 0 && path == null){
-			
-			// might be sheltering at home - check!
-			if(targetShelter == null){
-				// sheltering at home and have just arrived! Stay here!
-				// remove them from the road network they're on
-				if(edge.getClass().equals(ListEdge.class))
-					((ListEdge)edge).removeElement(this);
-				
-				// set the final evacuating time!
-				evacuatingTime = time - evacuatingTime;
-				evacuatingCompleted = true;
-				
-				myHistory += "shelteringAtHome:" + time;
-				
-				return;
-			}
-			
-			// if there is room, successfully enter the Shelter
-			if(targetShelter.roomForN(1)){
-				targetShelter.addNewPerson(this);
-				
-				// remove them from the road network they're on
-				if(edge.getClass().equals(ListEdge.class))
-					((ListEdge)edge).removeElement(this);
-				
-				if(time - evacuatingTime <= 10)
-					System.out.println("wut");
-				// set the final evacuating time!
-				evacuatingTime = time - evacuatingTime;
-				evacuatingCompleted = true;
-				
-				myHistory += "acceptedAtShelter:" + targetShelter.toString() + ":" + time;
-				
-				return;
-			}
-			
-			// otherwise, learn that the Shelter is full and consider going to another!
-			else{
-				fullShelters.add(targetShelter);
-				System.out.println("Shelter is full! " + myID);
-				
-				myHistory += "rejectedAtShelter:" + targetShelter.toString() + ":" + time + "\t";
-				
-				beginEvacuating(evacuatingTime); // force a reassessment
-				if(targetShelter == null){ // just stay on the road and cry pitiably, I guess??
-					//evacuatingTime = time - evacuatingTime;
-					evacuatingCompleted = true;
-					return;
-				}
-				// if that shelter is also full, wait a bit to think it over, then try again
-				else if(!targetShelter.roomForN(1)){
-					fullShelters.add(targetShelter);
-					path = null;
-					world.schedule.scheduleOnce(time + (int) rayleighDistrib(world.random.nextDouble()), this);
-					return;
-				}
-			}
-		}
-		
-		// check if the person has arrived at their destination
-		else if(path == null && time % 1440 <  960){ // only set a new target if it's during the day - if it's at night, wait
-			if(targetDestination != null && targetDestination.distance(this.geometry.getCoordinate()) < world.resolution){
-				Bag ns = world.roadNodes;
-				targetDestination = ((GeoNode)ns.get(world.random.nextInt(ns.size()))).geometry.getCoordinate();
-			}
-		}
-		
-		world.schedule.scheduleOnce(time+1, this);
 	}
 	
 	// EVACUATION BEHAVIOURS
+	
+	Shelter selectTargetShelter() {
 
-	/**
-	 * 
-	 * @param myTime - the time at which the evacuation effort started
-	 */
-	void beginEvacuating(double myTime){
-		
-		myHistory += "beginEvacuting:" + myTime + "\t";
-		
-		evacuatingTime = myTime; // save it here as a record
-		
 		double myDistance = Double.MAX_VALUE;
 		MasonGeometry myShelter = null;
 		for(Object o: world.shelterLayer.getGeometries()){
@@ -245,63 +167,105 @@ public class Person extends TrafficAgent implements Communicator {
 		if(myShelter == null){
 			
 			myHistory += "\tnoAvailableShelters";
-			System.out.println("No shelters with available space! Heading home instead");
-			targetShelter = null;
-			
-			targetDestination = myHousehold.home;
-			path = null;
-			headFor(targetDestination);
-			
-			evacuating = 0;
-			return;
+			System.out.println("No shelters with available space!");
+
+			return null;
 		}
 
-		/*GeoNode gn = RoadNetworkUtilities.getClosestGeoNode(((Shelter)myShelter).getEntrance().getCoordinate(), 
-				world.resolution, world.networkLayer, 
-				world.networkEdgeLayer, world.fa);
-		targetDestination = gn.geometry.getCoordinate();
-		*/
+		return (Shelter) myShelter;
+	}
+	
+	void headForShelter(Shelter myShelter) {
+		
 		targetDestination = ((Shelter)myShelter).getEntrance();
+		targetShelter = (Shelter)myShelter;
 		
-		// deciding on sheltering at home
-		double tempWeightingParam = Double.MAX_VALUE;//5000;//.5;
-		if(targetDestination.distance(this.getGeometry().getCoordinate()) > tempWeightingParam){
-//			tempWeightingParam * myHousehold.home.distance(this.getGeometry().getCoordinate())){
-			
-			targetDestination = myHousehold.home;
-			evacuating = 0;
-		}
-		
-		else {
-			targetShelter = (Shelter)myShelter;		
-			evacuating = 1;
-		}
-		
-		path = null;
 		headFor(targetDestination);
 		
 		if(path == null){
 			System.out.println("can't get there!!!");
 		}
+
 	}
 	
+	void beginEvacuating() {
+		
+		if(evacuatingTime < 0)
+			evacuatingTime = world.schedule.getTime();
+
+		setActivityNode(world.behaviourFramework.travelToHomeShelteringNode);
+		headFor(myHousehold.home);
+		
+		if(dependentOf != null) // trigger them!
+			dependentOf.beginEvacuatingDependent();
+		
+		world.schedule.scheduleOnce(this);
+	}
+	
+	void promptNeighbours() {
+		Bag n = world.agentsLayer.getObjectsWithinDistance(this, world.neighbourDistance);
+		int s = n.size();
+		if(s <= 1) return; // no one nearby!
+		Person p = (Person) n.get(world.random.nextInt(s));
+		if(p != this)
+			p.beginEvacuating();		
+	}
 	
 	public static double rayleighDistrib(double unif){
 		double x = TakamatsuSim.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
 		return x;
 	}
 	
-	public double assessRisk(){
+	public double assessRisk(Household target, double time){
 		
+		// first we calculate whether the Person is exposed to the floodwater at all
+		if(! target.inHazardZone) 
+			return 0; // it will be times 0, so no reason to continue with expensive checks!
+		
+/*		// otherwise, find the nearest one
 		double minDist = Double.MAX_VALUE;
-		for(Object o: world.waterLayer.getGeometries()){
+		Bag nearbyObjects = world.waterLayer.getObjectsWithinDistance(myHousehold, world.hazardThresholdDistance);
+		
+		// if they are, we determine the nearest point of inundation
+		for(Object o: nearbyObjects){
 			MasonGeometry mg = (MasonGeometry) o;
-			double d = mg.geometry.getCoordinate().distance(this.myHousehold.home);
+			double d = mg.geometry.distance(target.geometry);
+			
 			if(d < minDist)
 				minDist = d;
 		}
 		
-		return minDist / riskToleranceParam;
+		// we calculate the relative impact of the observed closeness of inundation
+		double risk_observed = 1 - (minDist / world.hazardThresholdDistance); 
+*/
+		double risk_observed = 1;
+		
+		// next, we determine how much risk the Person perceives
+		double journeyTimeEstimate = Double.MAX_VALUE; // we'll use this as a holder variable
+		
+		// find the nearest shelter to the target to be evacuated
+		for(Object o: world.shelterLayer.getGeometries()) {
+			MasonGeometry mg = (MasonGeometry) o;
+			double d = mg.geometry.distance(target.geometry);
+			if(journeyTimeEstimate > d)
+				journeyTimeEstimate = d;
+		}
+		
+		// also keep in mind that we need to travel TO the target location before we can leave from there
+		journeyTimeEstimate += this.geometry.distance(target.geometry);
+		
+		// weight the journey time
+		journeyTimeEstimate *= distanceEstimationWeighting;
+		if(this.myVehicle != null)
+			journeyTimeEstimate /= TakamatsuSim.speed_vehicle;
+		else
+			journeyTimeEstimate /= this.speed;
+		
+		// calculate the risk based on the forecast
+		double risk_forecast = Math.pow(Math.E, -Math.pow(time - journeyTimeEstimate - world.forecastArrivalTime, 2)/
+				(2 * world.forecastingWidthParam));
+		
+		return risk_observed * risk_forecast;
 	}
 	
 	
@@ -379,8 +343,11 @@ public class Person extends TrafficAgent implements Communicator {
 
 		if(this.wayfindingMechanism == 0)
 			path = world.pathfinder.astarPath(node, destinationNode, world.roads);
+		else if(this.myVehicle == null)
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting_pedestrian);
 		else
-			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting);
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting_vehicle);
+
 
 		// if it fails, give up
 		if (path == null){
@@ -505,15 +472,28 @@ public class Person extends TrafficAgent implements Communicator {
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
-	public int getEvacuating(){ return this.evacuating; }
-	public Coordinate getHome(){ return this.myHousehold.home; }
+//	public int getEvacuating(){ return this.evacuating; }
+	
+	public boolean isEvacuating() { return !
+			(this.currentAction == world.behaviourFramework.homeNode || 
+			this.currentAction == world.behaviourFramework.travelToHomeNode ||
+			this.currentAction == world.behaviourFramework.workNode ||
+			this.currentAction == world.behaviourFramework.travelToWorkNode);}
+	
 	public double getEvacuatingTime(){ return evacuatingTime; }	
-
+	public Household getHousehold() { return this.myHousehold;}
+	
 	public void setActivityNode(BehaviourNode bn){ this.currentAction = bn;}
 	public BehaviourNode getActivityNode(){ return this.currentAction;}
 	public boolean finishedPath(){ return path == null; }
+	public ArrayList <Edge> getPath(){ return path;}
+	
+	public void setSpeed(double d) { this.speed = d; }
+	public double getSpeed() { return this.speed; }
 	
 	public void setWorkLocation(Coordinate c){
 		this.work = (Coordinate) c.clone();
 	}
+	
+//	public EvacuationPlan getEvacuationPlan(){ return myPlan; }
 }

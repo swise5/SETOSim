@@ -11,7 +11,7 @@ import mysim.TakamatsuSim;
 import sim.util.geo.MasonGeometry;
 import swise.agents.SpatialAgent;
 import swise.objects.network.GeoNode;
-import utilities.RoadNetworkUtilities;
+import swise.objects.RoadNetworkUtilities;
 
 public class Shelter extends SpatialAgent {
 	

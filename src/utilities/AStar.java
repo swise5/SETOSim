@@ -93,7 +93,7 @@ public class AStar
         // A* containers: nodes to be investigated, nodes that have been investigated
         HashSet <AStarNodeWrapper> closedSet = new HashSet <AStarNodeWrapper>();
         
-        TreeSet <AStarNodeWrapper> myOpenSet = new TreeSet <AStarNodeWrapper> (new Comparator(){
+        TreeSet <AStarNodeWrapper> myOpenSet = new TreeSet <AStarNodeWrapper> (new Comparator<Object>(){
 
 			@Override
 			public int compare(Object o1, Object o2) {
@@ -219,7 +219,7 @@ public class AStar
         // A* containers: nodes to be investigated, nodes that have been investigated
         HashSet <AStarNodeWrapper> closedSet = new HashSet <AStarNodeWrapper>();
         
-        TreeSet <AStarNodeWrapper> myOpenSet = new TreeSet <AStarNodeWrapper> (new Comparator(){
+        TreeSet <AStarNodeWrapper> myOpenSet = new TreeSet <AStarNodeWrapper> (new Comparator<Object>(){
 
 			@Override
 			public int compare(Object o1, Object o2) {

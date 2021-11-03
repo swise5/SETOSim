@@ -12,7 +12,6 @@ import com.vividsolutions.jts.geom.Point;
 import myobjects.Household;
 import myobjects.Person;
 import mysim.TakamatsuSim;
-import mysim.TakamatsuSim.MediaInstance;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -57,7 +56,7 @@ public class PersonUtilities {
 		return agents;
 	}
 	
-	public static synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world, MediaInstance media){
+	public static synchronized ArrayList<Person> setupPersonsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world){
 		try {
 			ArrayList<Person> agents = new ArrayList <Person> ();
 			
@@ -171,11 +170,6 @@ public class PersonUtilities {
 				}
 			}
 			
-			for(Person a: agents){
-				// EVERYONE IS IN TOUCH WITH MASS MEDIA! (social media just amplifies the signal)
-				a.addSocialMediaContact(media);
-			}
-			
 			System.out.println("DONE READING IN PEOPLE");
 			// clean up
 			
@@ -204,7 +198,8 @@ public class PersonUtilities {
 	 * 
 	 * @param agentsFilename - the file in which the agent records are stored
 	 */
-	public static synchronized ArrayList<Person> setupHouseholdsFromFile(String agentsFilename, Schedule schedule, TakamatsuSim world){
+	public static synchronized ArrayList<Person> setupHouseholdsFromFile(String agentsFilename, GeomVectorField agentLayer, 
+			GeomVectorField householdLayer, TakamatsuSim world){
 		try {
 			ArrayList<Person> agents = new ArrayList <Person> ();
 			
@@ -217,7 +212,7 @@ public class PersonUtilities {
 			BufferedReader agentData = new BufferedReader(new InputStreamReader(fstream));
 			String s;
 
-			// assmeble the list of building names so that the agents can be associated with the correct buildings
+			// assemble the list of building names so that the agents can be associated with the correct buildings
 			HashMap <String, MasonGeometry> buildingNames = new HashMap <String, MasonGeometry> ();
 			for(Object o: world.buildingLayer.getGeometries()){
 				MasonGeometry mg = (MasonGeometry) o;
@@ -256,6 +251,7 @@ public class PersonUtilities {
 				Coordinate homeCoord = (Coordinate) myEntrance.getValue();//myHomeBuilding.geometry.getCoordinate();
 				Coordinate homeCoordCopy = new Coordinate(homeCoord.x, homeCoord.y, homeCoord.z);
 				Household h = new Household(homeCoordCopy);
+				householdLayer.addGeometry(h);
 
 				// determine how many Household members there are
 				Integer numHouseholdMembers = Integer.parseInt(bits[2]);
@@ -281,6 +277,7 @@ public class PersonUtilities {
 
 					agents.add(a);
 					world.schedule.scheduleOnce(a);
+					agentLayer.addGeometry(a);
 				}
 			}
 
@@ -291,7 +288,7 @@ public class PersonUtilities {
 			// clean up
 			
 			
-			schedule.scheduleRepeating(1316, new Steppable(){
+/*			schedule.scheduleRepeating(1316, new Steppable(){
 
 				@Override
 				public void step(SimState state) {
@@ -299,7 +296,7 @@ public class PersonUtilities {
 					
 				}
 				
-			});
+			}); */
 			
 			return agents;
 
