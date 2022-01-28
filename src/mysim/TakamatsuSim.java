@@ -197,7 +197,7 @@ public class TakamatsuSim extends SimState {
 	 */
 	public TakamatsuSim(long seed) {
 		super(seed);
-		random = new MersenneTwisterFast(12345);
+//		random = new MersenneTwisterFast(12345);
 	}
 
 
@@ -251,7 +251,8 @@ public class TakamatsuSim extends SimState {
 			// clean up the road network
 			
 			System.out.print("Cleaning the road network...");
-			
+
+			Object myDummyObj = NetworkUtilities.class.getResource("NetworkUtilities.class");
 			roads = NetworkUtilities.multipartNetworkCleanup(roadLayer, roadNodes, resolution, fa, random, 0);
 			roadNodes = roads.getAllNodes();
 			NetworkUtilities.testNetworkForIssues(roads);
@@ -615,16 +616,24 @@ public class TakamatsuSim extends SimState {
 			for(Person a: agents){
 
 				if(a.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
-					continue;
+				{
+					if(! a.getHousehold().inHazardZone()) // if they're safe, don't export them; otherwise DO include them!
+						continue;					
+				}
 				
 				String myID = a.getMyID();
 
 				String status = a.getActivityNode().getTitle();
-				Bag bagOWater= this.waterLayer.getObjectsWithinDistance(a.getHousehold(), this.resolution);
+				
+/*				Bag bagOWater= this.waterLayer.getObjectsWithinDistance(a.getHousehold(), this.resolution);
 				String inWater = "notSubmerged";
 				if(bagOWater.size() > 0)
 					inWater = "inWater";
-				
+*/
+				String inWater = "notSubmerged";
+				if(a.getHousehold().inHazardZone())
+					inWater = "inZone";
+
 				Coordinate homeCoord = a.getHousehold().getHome();
 				Coordinate locCoord = a.geometry.getCoordinate();
 				String dependent = "<none>";

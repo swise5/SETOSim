@@ -6,15 +6,16 @@ public class BulkSim {
 		
 		boolean [] ageEnabled = new boolean [] {true};
 		boolean [] neighbourPolicy = new boolean [] {true, false};
-		boolean [] designatedHelperPolicy = new boolean [] {true, false};
-		String [] floodwaterFilename = new String [] {"RitsurinDemo/TakamatsuWaterFlooded.shp", "RitsurinDemo/TakamatsuTyphoon16.shp"
+		boolean [] designatedHelperPolicy = new boolean [] {false,  true};
+		String [] floodwaterFilename = new String [] {"RitsurinDemo/TakamatsuWaterFlooded.shp", 
+				"RitsurinDemo/TakamatsuTyphoon16.shp"
 				};
 		
 		for(boolean helper: designatedHelperPolicy) {
 			for(boolean neighbour: neighbourPolicy) {
 				for(boolean age: ageEnabled) {
 					for(String filename: floodwaterFilename) {
-						for(int i = 0; i < 10; i++){
+						for(int i = 10; i < 20; i++){
 							runInstance(i, age, neighbour, helper, filename);
 						}
 					}
