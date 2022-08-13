@@ -1,0 +1,28 @@
+apply plugin: 'java'
+
+group 'takamatsu'
+version '1.0-SNAPSHOT'
+
+jar {
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // https://stackoverflow.com/a/68922734 for .classpath
+
+    manifest {
+        attributes 'Main-Class': 'takamatsu.myobjects.MyTest'
+    }
+
+    // https://www.baeldung.com/gradle-fat-jar
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies { // as per https://stackoverflow.com/a/66910991
+    implementation fileTree(dir:'libs', include: ['*.jar'])
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+}
+
