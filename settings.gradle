@@ -8,4 +8,4 @@
  */
 
 rootProject.name = 'swise'
-include('lib')
+//include('libs')

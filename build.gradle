@@ -1,28 +1,17 @@
-apply plugin: 'java'
-
+plugins {
+    id 'java'
+}
 group 'takamatsu'
 version '1.0-SNAPSHOT'
 
-jar {
+//mainClassName = 'main.mysim.TakamatsuGUI.Main'
 
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // https://stackoverflow.com/a/68922734 for .classpath
-
-    manifest {
-        attributes 'Main-Class': 'takamatsu.myobjects.MyTest'
-    }
-
-    // https://www.baeldung.com/gradle-fat-jar
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
+dependencies { 
+	implementation files('libs/geomason.1.5.jar', 'libs/jts-1.13.jar', 'libs/jts-core-1.18.2.jar', 'libs/mason.19.jar', 'libs/swiselib2022.jar')
+    //testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    // as per https://stackoverflow.com/a/66910991
 }
 
-repositories {
-    mavenCentral()
+test {
+    useJUnitPlatform()
 }
-
-dependencies { // as per https://stackoverflow.com/a/66910991
-    implementation fileTree(dir:'libs', include: ['*.jar'])
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-}
-
