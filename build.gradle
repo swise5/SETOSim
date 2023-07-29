@@ -10,6 +10,9 @@ dependencies {
 	implementation files('libs/geomason.1.5.jar', 'libs/jts-1.13.jar', 'libs/jts-core-1.18.2.jar', 'libs/mason.19.jar', 'libs/swiselib2022.jar')
     //testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     // as per https://stackoverflow.com/a/66910991
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    
 }
 
 test {

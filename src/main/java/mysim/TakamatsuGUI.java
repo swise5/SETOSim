@@ -1,4 +1,4 @@
-package main.mysim;
+package main.java.mysim;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -11,7 +11,7 @@ import java.util.Date;
 import javax.swing.JFrame;
 
 import ec.util.MersenneTwisterFast;
-import main.utilities.InputCleaning;
+import main.java.utilities.InputCleaning;
 import sim.display.Console;
 import sim.display.Controller;
 import sim.display.Display2D;

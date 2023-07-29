@@ -1,13 +1,13 @@
-package test;
+package test.java;
 
 import org.junit.Test;
 
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-import main.myobjects.Person;
-import main.myobjects.Vehicle;
-import main.mysim.TakamatsuSim;
+import main.java.myobjects.Person;
+import main.java.myobjects.Vehicle;
+import main.java.mysim.TakamatsuSim;
 import sim.field.geo.GeomVectorField;
 
 import static org.junit.Assert.*;

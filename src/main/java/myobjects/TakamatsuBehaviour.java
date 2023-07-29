@@ -1,6 +1,6 @@
-package main.myobjects;
+package main.java.myobjects;
 
-import main.mysim.TakamatsuSim;
+import main.java.mysim.TakamatsuSim;
 import sim.engine.Steppable;
 import swise.behaviours.*;
 

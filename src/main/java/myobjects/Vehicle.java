@@ -1,4 +1,4 @@
-package main.myobjects;
+package main.java.myobjects;
 
 import java.util.ArrayList;
 
@@ -7,7 +7,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
-import main.mysim.TakamatsuSim;
+import main.java.mysim.TakamatsuSim;
 import sim.util.geo.MasonGeometry;
 import swise.agents.TrafficAgent;
 import swise.objects.RoadNetworkUtilities;

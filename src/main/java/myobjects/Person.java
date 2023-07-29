@@ -1,4 +1,4 @@
-package main.myobjects;
+package main.java.myobjects;
 
 import java.util.ArrayList;
 
@@ -9,7 +9,7 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
-import main.mysim.TakamatsuSim;
+import main.java.mysim.TakamatsuSim;
 import sim.engine.SimState;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;

@@ -1,4 +1,4 @@
-package main.utilities;
+package main.java.utilities;
 
 import com.vividsolutions.jts.geom.Coordinate;
 

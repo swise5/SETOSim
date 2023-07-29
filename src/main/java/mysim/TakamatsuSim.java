@@ -1,4 +1,4 @@
-package main.mysim;
+package main.java.mysim;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -51,8 +51,8 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import ec.util.MersenneTwisterFast;
-import main.utilities.*;
-import main.myobjects.*;
+import main.java.utilities.*;
+import main.java.myobjects.*;
 
 /**
  * TakamatsuSim is the core of a simulation which projects the behavior of agents in the aftermath

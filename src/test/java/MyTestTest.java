@@ -1,8 +1,8 @@
-package test;
+package test.java;
 
 import org.junit.Test;
 
-import main.mysim.TakamatsuSim;
+import main.java.mysim.TakamatsuSim;
 
 public class MyTestTest {
     @Test

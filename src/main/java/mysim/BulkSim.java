@@ -1,4 +1,4 @@
-package main.mysim;
+package main.java.mysim;
 
 public class BulkSim {
 	

@@ -1,4 +1,4 @@
-package main.utilities;
+package main.java.utilities;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -9,9 +9,9 @@ import java.util.Map.Entry;
 
 import com.vividsolutions.jts.geom.Point;
 
-import main.mysim.TakamatsuSim;
-import main.myobjects.Household;
-import main.myobjects.Person;
+import main.java.mysim.TakamatsuSim;
+import main.java.myobjects.Household;
+import main.java.myobjects.Person;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
