@@ -23,7 +23,7 @@ import sim.field.geo.GeomVectorField;
 import sim.util.Bag;
 import sim.util.geo.AttributeValue;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.objects.PopSynth;
+import swise.objects.PopSynth;
 
 public class PersonUtilities {
 	

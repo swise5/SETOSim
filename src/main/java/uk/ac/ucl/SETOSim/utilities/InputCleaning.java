@@ -17,8 +17,8 @@ import sim.io.geo.ArcInfoASCGridImporter;
 import sim.io.geo.ShapeFileImporter;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.objects.NetworkUtilities;
-import uk.ac.ucl.swise.objects.network.GeoNode;
+import swise.objects.NetworkUtilities;
+import swise.objects.network.GeoNode;
 
 public class InputCleaning {
 	

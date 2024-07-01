@@ -15,13 +15,13 @@ import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.agents.TrafficAgent;
-import uk.ac.ucl.swise.agents.communicator.Communicator;
-import uk.ac.ucl.swise.agents.communicator.Information;
-import uk.ac.ucl.swise.behaviours.BehaviourNode;
-import uk.ac.ucl.swise.objects.RoadNetworkUtilities;
-import uk.ac.ucl.swise.objects.network.GeoNode;
-import uk.ac.ucl.swise.objects.network.ListEdge;
+import swise.agents.TrafficAgent;
+import swise.agents.communicator.Communicator;
+import swise.agents.communicator.Information;
+import swise.behaviours.BehaviourNode;
+import swise.objects.RoadNetworkUtilities;
+import swise.objects.network.GeoNode;
+import swise.objects.network.ListEdge;
 
 public class Person extends TrafficAgent {
 

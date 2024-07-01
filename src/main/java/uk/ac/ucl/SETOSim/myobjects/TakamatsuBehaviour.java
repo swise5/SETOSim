@@ -2,7 +2,7 @@ package uk.ac.ucl.SETOSim.myobjects;
 
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import sim.engine.Steppable;
-import uk.ac.ucl.swise.behaviours.*;
+import swise.behaviours.*;
 
 public class TakamatsuBehaviour extends BehaviourFramework {
 	

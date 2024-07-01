@@ -13,8 +13,8 @@ import sim.field.network.Edge;
 import sim.field.network.Network;
 import sim.util.geo.AttributeValue;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.objects.network.GeoNode;
-import uk.ac.ucl.swise.objects.network.ListEdge;
+import swise.objects.network.GeoNode;
+import swise.objects.network.ListEdge;
 
 /**
  * An object held by the overall environment, upon which agents can plan their routes. Holds

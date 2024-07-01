@@ -28,11 +28,11 @@ import sim.portrayal.FieldPortrayal2D;
 import sim.util.Bag;
 import sim.util.gui.SimpleColorMap;
 import sim.util.media.chart.TimeSeriesChartGenerator;
-import uk.ac.ucl.swise.disasters.Wildfire;
-import uk.ac.ucl.swise.visualization.AttributePolyPortrayal;
-import uk.ac.ucl.swise.visualization.FilledPolyPortrayal;
-import uk.ac.ucl.swise.visualization.GeomNetworkFieldPortrayal;
-//import uk.ac.ucl.swise.visualization.TextPortrayal;
+import swise.disasters.Wildfire;
+import swise.visualization.AttributePolyPortrayal;
+import swise.visualization.FilledPolyPortrayal;
+import swise.visualization.GeomNetworkFieldPortrayal;
+//import swise.visualization.TextPortrayal;
 
 /**
  * A visualization of the Hotspots simulation.
@@ -68,7 +68,7 @@ public class TakamatsuGUI extends GUIState {
 
 	/** Begins the simulation */
 	public void start() {
-		sim.resetForTsunamiScenario();
+		//sim.resetForTsunamiScenario();
 		sim.evacuationPolicy_designatedPerson = false;
 		sim.evacuationPolicy_neighbours = false;
 		super.start();

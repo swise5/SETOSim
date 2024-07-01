@@ -9,9 +9,9 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.agents.TrafficAgent;
-import uk.ac.ucl.swise.objects.RoadNetworkUtilities;
-import uk.ac.ucl.swise.objects.network.GeoNode;
+import swise.agents.TrafficAgent;
+import swise.objects.RoadNetworkUtilities;
+import swise.objects.network.GeoNode;
 
 public class Vehicle extends TrafficAgent {
 	

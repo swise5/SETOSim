@@ -18,9 +18,9 @@ import sim.field.network.Network;
 import sim.io.geo.ShapeFileImporter;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
-import uk.ac.ucl.swise.objects.NetworkUtilities;
-import uk.ac.ucl.swise.objects.network.GeoNode;
-import uk.ac.ucl.swise.objects.network.ListEdge;
+import swise.objects.NetworkUtilities;
+import swise.objects.network.GeoNode;
+import swise.objects.network.ListEdge;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;

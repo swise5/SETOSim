@@ -33,15 +33,15 @@ import sim.util.geo.MasonGeometry;
 import sim.util.geo.PointMoveTo;
 import uk.ac.ucl.SETOSim.myobjects.*;
 import uk.ac.ucl.SETOSim.utilities.*;
-import uk.ac.ucl.swise.agents.communicator.Communicator;
-import uk.ac.ucl.swise.agents.communicator.Information;
-import uk.ac.ucl.swise.disasters.Wildfire;
-import uk.ac.ucl.swise.objects.NetworkUtilities;
-import uk.ac.ucl.swise.objects.PopSynth;
-import uk.ac.ucl.swise.objects.RoadNetworkUtilities;
-//import uk.ac.ucl.swise.objects.network.GeoNetwork;
-import uk.ac.ucl.swise.objects.network.GeoNode;
-import uk.ac.ucl.swise.objects.network.ListEdge;
+import swise.agents.communicator.Communicator;
+import swise.agents.communicator.Information;
+import swise.disasters.Wildfire;
+import swise.objects.NetworkUtilities;
+import swise.objects.PopSynth;
+import swise.objects.RoadNetworkUtilities;
+//import swise.objects.network.GeoNetwork;
+import swise.objects.network.GeoNode;
+import swise.objects.network.ListEdge;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateSequenceFilter;
@@ -103,24 +103,24 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/";
+	String dirName = "/Users/wendi/Desktop/RA/RA - NIT/SETOSim exploration - SW's files/";
 	
 	
 	
-	public static String communicatorFilename = "RitsurinDemo/communicatorEvents.txt";
-	public static String agentFilename = "RitsurinDemo/synthPop_Ritsurin.txt";
-	public static String regionalNamesFilename = "RitsurinDemo/regionalNames.shp";
-	public String floodedFilename = "RitsurinDemo/TakamatsuTyphoon16.shp";
-	public String waterFilename = "RitsurinDemo/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "RitsurinDemo/sheltersUnion.shp";
-	public String buildingsFilename = "RitsurinDemo/Ritsurin.shp";
-	public String roadsFilename = "RitsurinDemo/RitsurinRoads.shp";
+	public static String communicatorFilename = "empty.txt";
+	public static String agentFilename = "defaultRitsurinFiles/synthPop_Ritsurin.txt";
+	public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
+	public String floodedFilename = "TakamatsuTyphoon/TakamatsuTyphoon16.shp";
+	public String waterFilename = "defaultRitsurinFiles/TakamatsuWaterAll.shp";
+	public String sheltersFilename = "defaultRitsurinFiles/sheltersUnion.shp";
+	public String buildingsFilename = "defaultRitsurinFiles/Ritsurin.shp";
+	public String roadsFilename = "defaultRitsurinFiles/RitsurinRoads.shp";
 	
-	String record_speeds_filename = "elderDemo/speeds", 
-			record_sentiment_filename = "elderDemo/sentiment",
-			record_heatmap_filename = "elderDemo/heatmap",
-			record_info_filename = "elderDemo/bifurc_info";
-
+/*	String record_speeds_filename = "output/speeds", 
+			record_sentiment_filename = "output/sentiment",
+			record_heatmap_filename = "output/heatmap",
+			record_info_filename = "output/bifurc_info";
+*/
 	// EXPORTS
 	
 	BufferedWriter record_speeds, record_sentiment, record_heatmap;
