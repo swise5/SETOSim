@@ -103,14 +103,14 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/wendi/Desktop/RA/RA - NIT/SETOSim exploration - SW's files/";
+	String dirName = "/Users/swise/Projects/hitomi/data/RitsurinDemo/";
 	
 	
 	
 	public static String communicatorFilename = "empty.txt";
 	public static String agentFilename = "defaultRitsurinFiles/synthPop_Ritsurin.txt";
 	public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
-	public String floodedFilename = "TakamatsuTyphoon/TakamatsuTyphoon16.shp";
+	public String floodedFilename = "TakamatsuTyphoon16.shp";
 	public String waterFilename = "defaultRitsurinFiles/TakamatsuWaterAll.shp";
 	public String sheltersFilename = "defaultRitsurinFiles/sheltersUnion.shp";
 	public String buildingsFilename = "defaultRitsurinFiles/Ritsurin.shp";

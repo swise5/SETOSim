@@ -14,13 +14,16 @@ import java.util.HashSet;
 
 import sim.util.distribution.*;
 import sim.field.geo.GeomVectorField;
+import sim.field.grid.IntGrid2D;
 import sim.field.network.Network;
+import sim.io.geo.ShapeFileExporter;
 import sim.io.geo.ShapeFileImporter;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
 import swise.objects.NetworkUtilities;
 import swise.objects.network.GeoNode;
 import swise.objects.network.ListEdge;
+import uk.ac.ucl.SETOSim.myobjects.Shelter;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -41,12 +44,13 @@ import ec.util.MersenneTwisterFast;
  */
 public class PopulationSynthesis {
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/";
+	String dirName = "/Users/swise/Projects/hitomi/data/CanberraDemoData/";
 
 	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
+	String roadsFilename = "ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String buildingsFilename = "";
+
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
-	String roadsFilename = "RitsurinDemo/RitsurinRoads.shp";
-	String buildingsFilename = "RitsurinDemo/Ritsurin.shp";
 
 	int targetNumIndividualsToGenerate = 140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
 	int targetNumHouseholdsToGenerate =  68700;//197030 ;
@@ -145,11 +149,20 @@ public class PopulationSynthesis {
 		
 		// read in data
 		GeomVectorField roads = readInVectors(dirName + roadsFilename);
-		GeomVectorField buildings = readInVectors(dirName + buildingsFilename);
 		roadNetwork = NetworkUtilities.multipartNetworkCleanup(roads, new Bag(), resolution, gf, random, 0);
 
 		// construct the houses into which individuals are to be slotted
-		HashSet <MasonGeometry> candidateHouses = generateHouses(buildings, roadNetwork);
+		HashSet <MasonGeometry> candidateHouses;
+		GeomVectorField buildings;
+		if(buildingsFilename.length() == 0) {
+			buildings = new GeomVectorField();
+			buildings.setMBR(roads.getMBR());
+			candidateHouses = generateHousesFromScratch(buildings, roadNetwork);
+		}
+		else {
+			buildings = readInVectors(dirName + buildingsFilename);
+			candidateHouses = generateHouses(buildings, roadNetwork);			
+		}
 		
 		//
 		// Generate the households
@@ -637,7 +650,107 @@ public class PopulationSynthesis {
 		return houseCandidates;
 	}
 	
+	/**
+	 * Generate the set of possible houses in the environment, given the residential roads
+	 *  
+	 * @param field
+	 * @param roadNetwork
+	 * @return
+	 */
+	HashSet <MasonGeometry> generateHousesFromScratch(GeomVectorField field, Network roadNetwork){
+		
+		// set up the location to hold the objects
+		GeomVectorField roadGeoms = new GeomVectorField();
+		roadGeoms.setMBR(field.getMBR());
+		
+		HashSet <ListEdge> discoveredEdges = new HashSet <ListEdge> ();
+		HashSet <MasonGeometry> houseCandidates = new HashSet <MasonGeometry> ();
+		
+		GeometryFactory gf = new GeometryFactory();
+		
+		//
+		// match all the edges to the areas that completely contain them.
+		//
+		for(Object o: roadNetwork.getAllNodes()){ // go through nodes one by one
+			
+			GeoNode node = (GeoNode) o;
+			
+			// don't look if the node is outside the building area!
+			if(!field.getMBR().contains(node.getGeometry().getCoordinate()))
+				continue;
 
+			// go through the edges for this node
+			for(Object p: roadNetwork.getEdgesOut(node)){
+				
+				// get the associated edges!
+				ListEdge edge = (ListEdge) p;
+				
+				// if the road is the wrong type, or it has already been found, continue!
+				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute("HIERARCHY");
+
+				// we only want residential roads and we don't want the type 1 roads (from survey)
+				if(!(type.contains("RESIDENTIAL")) || type.equals("URBAN RESIDENTIAL 1"))
+					continue;
+				if(discoveredEdges.contains(edge))
+					continue;
+				
+				// add it to the field!
+				MasonGeometry mg = (MasonGeometry)edge.getInfo();
+				roadGeoms.addGeometry(mg);
+				discoveredEdges.add(edge);
+				
+				LineString ls = (LineString)((MasonGeometry)edge.info).geometry;
+				
+				LengthIndexedLine segment = new LengthIndexedLine(ls);
+				double endIndex = segment.getEndIndex();
+				
+				double distanceBetweenBuildings = 12;
+				
+				for(double i = .5 * distanceBetweenBuildings; i <= endIndex; i += distanceBetweenBuildings) {
+					MasonGeometry newHouse = new MasonGeometry(gf.createPoint(segment.extractPoint(i)));
+					field.addGeometry(newHouse);
+					houseCandidates.add(newHouse);
+				}
+				
+				/*
+				// attempt to add buildings, based on size
+				Bag b = field.getObjectsWithinDistance(mg, distanceToRoads);
+				for(Object raw_house: b){
+					MasonGeometry possibleHouse = (MasonGeometry) raw_house;
+					
+					 // don't take overly large buildings!
+					if(possibleHouse.geometry.getArea() > 200) continue;
+					
+					// if it's close to a Residential or Living street and smaller than 200m^2, add it!
+					// https://en.wikipedia.org/wiki/Housing_in_Japan suggests that the average is 94.85 - doubled here in case!
+					houseCandidates.add(possibleHouse);
+				}
+				*/
+			}
+		}
+		
+		try {
+			System.out.println(houseCandidates.size());
+			
+			String housesFilename = dirName + "ugly_houses.txt";
+			BufferedWriter record_houses = new BufferedWriter(new FileWriter(housesFilename));
+			
+			record_houses.write("id\tx\ty\n");
+			int index = 0;
+			for(Object o: field.getGeometries()) {
+				Point mg = (Point)((MasonGeometry) o).geometry;
+				record_houses.write("house_" + index + "\t" + mg.getX() + "\t" + mg.getY() + "\n");
+				index++;
+			}
+			record_houses.close();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return houseCandidates;
+	}
+	
 	double [] getAgeSexConstraints(){
 		
 		FileInputStream fstream;
