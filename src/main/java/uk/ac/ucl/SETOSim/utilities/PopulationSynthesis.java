@@ -704,7 +704,7 @@ public class PopulationSynthesis {
 				LengthIndexedLine segment = new LengthIndexedLine(ls);
 				double endIndex = segment.getEndIndex();
 				
-				double distanceBetweenBuildings = 12;
+				double distanceBetweenBuildings = 20;
 				
 				for(double i = .5 * distanceBetweenBuildings; i <= endIndex; i += distanceBetweenBuildings) {
 					MasonGeometry newHouse = new MasonGeometry(gf.createPoint(segment.extractPoint(i)));
