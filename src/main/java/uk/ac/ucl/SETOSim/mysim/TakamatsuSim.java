@@ -103,18 +103,18 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/CanberraDemoData/";//RitsurinDemo/";//
+	String dirName = "data/canberraDemo/";//"/Users/swise/Projects/hitomi/data/CanberraDemoData/";//RitsurinDemo/";//
 	
 	
 	
 	public static String communicatorFilename = "empty.txt";
-	public static String agentFilename = "synthPop_hh_1720106623551.txt";//"defaultRitsurinFiles/synthPop_Ritsurin.txt";//
+	public static String agentFilename = "dummyPop.txt";//"synthPop_hh_1720106623551.txt";//"defaultRitsurinFiles/synthPop_Ritsurin.txt";//
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
-	public String floodedFilename = "selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"TakamatsuTyphoon16.shp";
-	public String waterFilename = "selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "sheltersByHandWithEntrances.shp";//"ACTGOV_Shelter_Assets_4461799249747129901/ACTGOV_Shelter_Assets.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
-	public String buildingsFilename = "uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
-	public String roadsFilename = "ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	public String floodedFilename = "water.shp";//"selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"TakamatsuTyphoon16.shp";
+	public String waterFilename = "water.shp";//"selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
+	public String sheltersFilename = "shelters.shp";//"sheltersByHandWithEntrances.shp";//"ACTGOV_Shelter_Assets_4461799249747129901/ACTGOV_Shelter_Assets.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
+	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
+	public String roadsFilename = "roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	
 	public String weightedRoadAttribute = "HIERARCHY";//"highway";
 	
