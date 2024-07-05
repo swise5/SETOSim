@@ -52,8 +52,8 @@ public class PopulationSynthesis {
 
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
 
-	int targetNumIndividualsToGenerate = 140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  68700;//197030 ;
+	int targetNumIndividualsToGenerate = 466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
+	int targetNumHouseholdsToGenerate =  168000;//68700;//197030 ;
 
 	
 	Network roadNetwork;
@@ -64,7 +64,7 @@ public class PopulationSynthesis {
 	public static double resolution = 5;// // the granularity of the simulation
 	public static double distanceToRoads = 10; // m, based on mucking around wiht it
 	
-	public static double numYearsPerBin = 5.;
+	public static double numYearsPerBin = 100;//5.;
 	public static int maxAge = 100;
 
 	public static int familyWeight = 10;
@@ -215,7 +215,7 @@ public class PopulationSynthesis {
 			allIndividuals.addAll(household);
 		}
 		
-		sociallyCluster(allIndividuals, acquaintenceWeight);
+		//sociallyCluster(allIndividuals, acquaintenceWeight);
 
 		System.out.println("Finished with social clustering");
 		
@@ -668,6 +668,8 @@ public class PopulationSynthesis {
 		
 		GeometryFactory gf = new GeometryFactory();
 		
+		int houseIndex = 0;
+		
 		//
 		// match all the edges to the areas that completely contain them.
 		//
@@ -708,6 +710,8 @@ public class PopulationSynthesis {
 				
 				for(double i = .5 * distanceBetweenBuildings; i <= endIndex; i += distanceBetweenBuildings) {
 					MasonGeometry newHouse = new MasonGeometry(gf.createPoint(segment.extractPoint(i)));
+					newHouse.addStringAttribute("fid", "house_" + houseIndex);
+					houseIndex++;
 					field.addGeometry(newHouse);
 					houseCandidates.add(newHouse);
 				}
@@ -735,7 +739,7 @@ public class PopulationSynthesis {
 			String housesFilename = dirName + "ugly_houses.txt";
 			BufferedWriter record_houses = new BufferedWriter(new FileWriter(housesFilename));
 			
-			record_houses.write("id\tx\ty\n");
+			record_houses.write("fid\tx\ty\n");
 			int index = 0;
 			for(Object o: field.getGeometries()) {
 				Point mg = (Point)((MasonGeometry) o).geometry;
@@ -803,12 +807,15 @@ public class PopulationSynthesis {
 
 			return results;
 		} catch (Exception e) {
-			System.out.println("ERROR reading in demographic data");
-
-			e.printStackTrace();
+			System.out.println("ERROR reading in demographic data - proceeding using dummy data");
+			
+			double [] dummyResults = new double [2];
+			dummyResults[0] = this.targetNumIndividualsToGenerate / 2;
+			dummyResults[1] = this.targetNumHouseholdsToGenerate / 2;
+			
+			//e.printStackTrace();
+			return dummyResults;
 		}
-		
-		return null;
 	}
 	
 	/**
@@ -887,12 +894,16 @@ public class PopulationSynthesis {
 
 				return results;
 			} catch (Exception e) {
-				System.out.println("ERROR reading in demographic data");
+				System.out.println("ERROR reading in demographic data - proceeding with dummy data");
 
-				e.printStackTrace();
-			}
-			
-			return null;
+				double [] dummyResults = new double [16];
+				for(int i = 0; i < 16; i++) {
+					dummyResults[i] = 0;
+				}
+				dummyResults[14] = this.targetNumHouseholdsToGenerate;
+				return dummyResults;
+				//e.printStackTrace();
+			}			
 		}
 	
 	/**
@@ -987,6 +998,7 @@ public class PopulationSynthesis {
 			case 13: // other relative family
 				break;
 			case 14: // non-related
+				familyGroup = false;
 				break;
 			case 15: // single person
 				hh1 = random.nextInt(2);
@@ -1004,7 +1016,7 @@ public class PopulationSynthesis {
 			int indivIndex = 0; // go through the randomly generated individuals one by one!
 			while(indivIndex < individuals.size() && hh1 >= 0){
 				a = individuals.get(indivIndex);
-				if(a.sex == hh1 && a.age >= 18./numYearsPerBin){ // basic requirements
+				if(a.sex == hh1 && a.age >= Math.floor(18./numYearsPerBin)){ // basic requirements
 
 					// if the householder needs to have children under 18, need to be old enough to have produced a kid!
 					if(numChildren > 0 && a.age < 15./numYearsPerBin){
@@ -1086,7 +1098,7 @@ public class PopulationSynthesis {
 
 				while(indivIndex < individuals.size() && fulfilled < numMembers){
 					a = individuals.get(indivIndex);
-					if(a.age > 4/numYearsPerBin){ 
+					if(a.age >= Math.floor(4./numYearsPerBin)){ 
 						household.add(a);
 						individuals.remove(indivIndex);
 						indivIndex = Integer.MAX_VALUE;
@@ -1114,9 +1126,11 @@ public class PopulationSynthesis {
 		//////////////////////////////////////////////////////////////////////////////////////////
 
 		int leftoverIndividualsToAllocate = individuals.size();
+		int allHouseholdsSize = allHouseholds.size(); 
 		while(leftoverIndividualsToAllocate > 0){
 			Agent member = individuals.remove(random.nextInt(leftoverIndividualsToAllocate));
-			familyHouseholds.get(random.nextInt(familyHouseholds.size())).add(member);
+			//familyHouseholds.get(random.nextInt(familyHouseholds.size())).add(member); TODO this was stupid
+			allHouseholds.get(random.nextInt(allHouseholdsSize)).add(member);
 			leftoverIndividualsToAllocate--;
 		}
 	

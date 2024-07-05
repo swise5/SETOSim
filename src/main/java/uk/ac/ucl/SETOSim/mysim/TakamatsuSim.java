@@ -68,8 +68,8 @@ public class TakamatsuSim extends SimState {
 	// SIZE
 	
 	private static final long serialVersionUID = 1L;
-	public int grid_width = 800;
-	public int grid_height = 600;
+	public int grid_width = 500;
+	public int grid_height = 1000;
 	public static double resolution = 1;// the granularity of the simulation (fiddle to merge nodes into one another)
 
 	// TIME
@@ -103,18 +103,20 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/RitsurinDemo/";
+	String dirName = "/Users/swise/Projects/hitomi/data/CanberraDemoData/";//RitsurinDemo/";//
 	
 	
 	
 	public static String communicatorFilename = "empty.txt";
-	public static String agentFilename = "defaultRitsurinFiles/synthPop_Ritsurin.txt";
-	public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
-	public String floodedFilename = "TakamatsuTyphoon16.shp";
-	public String waterFilename = "defaultRitsurinFiles/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "defaultRitsurinFiles/sheltersUnion.shp";
-	public String buildingsFilename = "defaultRitsurinFiles/Ritsurin.shp";
-	public String roadsFilename = "defaultRitsurinFiles/RitsurinRoads.shp";
+	public static String agentFilename = "synthPop_hh_1720106623551.txt";//"defaultRitsurinFiles/synthPop_Ritsurin.txt";//
+	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
+	public String floodedFilename = "selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"TakamatsuTyphoon16.shp";
+	public String waterFilename = "selectedWater.shp";//"ACTGOV_WATER_BODY_POLY_893807661266283771/ACTGOV_WATER_BODY_POLY.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
+	public String sheltersFilename = "sheltersByHandWithEntrances.shp";//"ACTGOV_Shelter_Assets_4461799249747129901/ACTGOV_Shelter_Assets.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
+	public String buildingsFilename = "uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
+	public String roadsFilename = "ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	
+	public String weightedRoadAttribute = "HIERARCHY";//"highway";
 	
 /*	String record_speeds_filename = "output/speeds", 
 			record_sentiment_filename = "output/sentiment",
@@ -196,6 +198,7 @@ public class TakamatsuSim extends SimState {
 	boolean exportHeatmap = false; // export the heatmap or no?
 	boolean verbose = false;
 	public boolean ageSpecificSpeeds = true;
+	public double likelihoodOfOwningVehicle = .6;
 	
 	/////////////// END Parameters ///////////////////////////////////////
 
@@ -290,7 +293,7 @@ public class TakamatsuSim extends SimState {
 					roadLayer.addGeometry((MasonGeometry) edge.info);
 					((MasonGeometry)edge.info).addAttribute("ListEdge", edge);
 					
-					String type = ((MasonGeometry)edge.info).getStringAttribute("highway");
+					String type = ((MasonGeometry)edge.info).getStringAttribute("HIERARCHY");//"highway");
 					if(type.equals("motorway") || type.equals("primary") || type.equals("trunk"))
 						potential_terminus = true;
 				}
@@ -304,6 +307,7 @@ public class TakamatsuSim extends SimState {
 
 			
 			typeWeighting_vehicle = new HashMap <String, Double> ();
+			/*
 			typeWeighting_vehicle.put("motorway", .5);
 			typeWeighting_vehicle.put("primary", .5);
 			typeWeighting_vehicle.put("trunk", .5);
@@ -311,19 +315,27 @@ public class TakamatsuSim extends SimState {
 			typeWeighting_vehicle.put("path", 10000.);
 			typeWeighting_vehicle.put("pedestrian", 10000.);
 			typeWeighting_vehicle.put("cycleway", 10000.);
+			*/
+			String [] preferredForVehicles = new String [] {"HIGHWAYS", "RURAL ARTERIAL", "URBAN ARTERIAL"};
+			for(String myType: preferredForVehicles)
+				typeWeighting_vehicle.put(myType, .5);
+			
 			
 			typeWeighting_pedestrian = new HashMap <String, Double> ();
 			typeWeighting_pedestrian.put("cycleway", 10000.);
-			
+			typeWeighting_pedestrian.put("HIGHWAYS", 10000.);
 			
 			// add shelter entrance info
 			
 			for(Object o: shelterRaw.getGeometries()){
 				MasonGeometry shelter = (MasonGeometry)o;
-				Shelter myShelter = new Shelter(shelter, (int) shelter.getIntegerAttribute("parkingNum"), this);
+				int numParkingSpaces = Integer.MAX_VALUE;
+				if(shelter.hasAttribute("parkingNum")) numParkingSpaces = (int) shelter.getIntegerAttribute("parkingNum");
+				Shelter myShelter = new Shelter(shelter, numParkingSpaces, this);
 				shelterLayer.addGeometry(myShelter);
 			}
 			
+			System.out.print(buildingLayer.MBR.toString());
 			/////////////////////
 			///////// Clean up roads for Persons to use ///////////
 			/////////////////////
@@ -412,7 +424,7 @@ public class TakamatsuSim extends SimState {
 				}
 			}
 
-			InputCleaning.readInVectorLayer(namesLayer, dirName + regionalNamesFilename, "name", new Bag());
+			//InputCleaning.readInVectorLayer(namesLayer, dirName + regionalNamesFilename, "name", new Bag());
 
 
 			// reset MBRS in case it got messed up during all the manipulation
@@ -425,7 +437,7 @@ public class TakamatsuSim extends SimState {
 			agentsLayer.setMBR(MBR);
 			shelterLayer.setMBR(MBR);
 			heatmap.setMBR(MBR);
-			namesLayer.setMBR(MBR);
+			//namesLayer.setMBR(MBR);
 			
 			System.out.println("done");
 

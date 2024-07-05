@@ -33,7 +33,11 @@ public class Shelter extends SpatialAgent {
 		capacity = (int) (g.geometry.getArea() / shelterDensityPerPerson);
 		vehicleCapacity = numVehicles;
 		
-		Coordinate c = new Coordinate(g.getDoubleAttribute("entranceX"), g.getDoubleAttribute("entranceY"));
+		Coordinate c;
+		if(g.hasAttribute("entranceX"))
+			c = new Coordinate(g.getDoubleAttribute("entranceX"), g.getDoubleAttribute("entranceY"));
+		else
+			c = new Coordinate(geometry.getCoordinate());
 		
 		// test to make sure it's close enough to the road network
 		double rez = world.resolution;

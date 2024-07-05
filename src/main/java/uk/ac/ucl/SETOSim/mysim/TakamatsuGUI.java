@@ -51,7 +51,7 @@ public class TakamatsuGUI extends GUIState {
 	private GeomVectorFieldPortrayal buildings = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal agents = new GeomVectorFieldPortrayal();
 	private GeomVectorFieldPortrayal shelters = new GeomVectorFieldPortrayal();
-	private GeomVectorFieldPortrayal names = new GeomVectorFieldPortrayal();
+	//private GeomVectorFieldPortrayal names = new GeomVectorFieldPortrayal();
 	
 	private GeomNetworkFieldPortrayal network = new GeomNetworkFieldPortrayal();
 	private FastValueGridPortrayal2D heatmap = new FastValueGridPortrayal2D();	
@@ -106,13 +106,13 @@ public class TakamatsuGUI extends GUIState {
 		agents.setField(world.agentsLayer);
 		agents.setPortrayalForAll( new AttributePolyPortrayal(
 				new SimpleColorMap(TakamatsuSim.speed_pedestrian,TakamatsuSim.speed_vehicle, new Color(255,0,0,50), new Color(0,0,255,100)),
-				"speed", new Color(0,0,0,0), true, 5));
+				"speed", new Color(0,0,0,0), true, 10));
 		
 		shelters.setField(world.shelterLayer);
 		shelters.setPortrayalForAll(new GeomPortrayal(new Color(255,255,0,90), true));
 		shelters.setImmutableField(true);;
 		
-		names.setField(world.namesLayer);
+//		names.setField(world.namesLayer);
 		//names.setPortrayalForAll(new TextPortrayal("name", new Color(50,50,50), 14));
 	//	names.setImmutableField(true);
 		
@@ -144,7 +144,7 @@ public class TakamatsuGUI extends GUIState {
 		display.attach(buildings, "Buildings");
 		display.attach(shelters, "Shelters");
 		display.attach(roads, "Roads");
-		display.attach(names, "Names");
+//		display.attach(names, "Names");
 		//display.attach(network, "Network", false);
 		display.attach(agents, "Agents");
 		

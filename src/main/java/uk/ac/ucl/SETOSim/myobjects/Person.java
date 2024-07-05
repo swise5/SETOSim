@@ -88,7 +88,7 @@ public class Person extends TrafficAgent {
 			this.wayfindingMechanism = 1;
 
 		// establish if the person has a vehicle at their disposal
-		if(world.random.nextDouble() < .1) {
+		if(world.random.nextDouble() < world.likelihoodOfOwningVehicle) {
 			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world);
 		}
 		
@@ -345,9 +345,9 @@ public class Person extends TrafficAgent {
 		if(this.wayfindingMechanism == 0)
 			path = world.pathfinder.astarPath(node, destinationNode, world.roads);
 		else if(this.myVehicle == null)
-			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting_pedestrian);
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, world.weightedRoadAttribute, world.typeWeighting_pedestrian);
 		else
-			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, "highway", world.typeWeighting_vehicle);
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roads, world.weightedRoadAttribute, world.typeWeighting_vehicle);
 
 
 		// if it fails, give up
