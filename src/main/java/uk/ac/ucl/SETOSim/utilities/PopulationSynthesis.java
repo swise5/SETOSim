@@ -44,16 +44,16 @@ import ec.util.MersenneTwisterFast;
  */
 public class PopulationSynthesis {
 	
-	String dirName = "/Users/swise/Projects/hitomi/data/CanberraDemoData/";
+	String dirName = "/Users/wendi/eclipse-workspace/takamatsu/data/canberraDemo/";//"/Users/swise/Projects/hitomi/data/CanberraDemoData/";
 
 	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
-	String roadsFilename = "ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String roadsFilename = "bushfireWodenRoads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
 	String buildingsFilename = "";
 
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
 
-	int targetNumIndividualsToGenerate = 466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  168000;//68700;//197030 ;
+	int targetNumIndividualsToGenerate = 24630;//466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
+	int targetNumHouseholdsToGenerate =  9945;//168000;//68700;//197030 ;
 
 	
 	Network roadNetwork;
@@ -62,7 +62,7 @@ public class PopulationSynthesis {
 	GeometryFactory gf = new GeometryFactory();
 	
 	public static double resolution = 5;// // the granularity of the simulation
-	public static double distanceToRoads = 10; // m, based on mucking around wiht it
+	public static double distanceToRoads = 15; // m, based on mucking around wiht it
 	
 	public static double numYearsPerBin = 100;//5.;
 	public static int maxAge = 100;
@@ -691,7 +691,7 @@ public class PopulationSynthesis {
 				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute("HIERARCHY");
 
 				// we only want residential roads and we don't want the type 1 roads (from survey)
-				if(!(type.contains("RESIDENTIAL")) || type.equals("URBAN RESIDENTIAL 1"))
+				if(!(type.contains("RESIDENTIAL")))
 					continue;
 				if(discoveredEdges.contains(edge))
 					continue;
@@ -706,9 +706,9 @@ public class PopulationSynthesis {
 				LengthIndexedLine segment = new LengthIndexedLine(ls);
 				double endIndex = segment.getEndIndex();
 				
-				double distanceBetweenBuildings = 20;
+				double distanceBetweenBuildings = 15;
 				
-				for(double i = .5 * distanceBetweenBuildings; i <= endIndex; i += distanceBetweenBuildings) {
+				for(double i = 5; i <= endIndex - 5; i += distanceBetweenBuildings) {
 					MasonGeometry newHouse = new MasonGeometry(gf.createPoint(segment.extractPoint(i)));
 					newHouse.addStringAttribute("fid", "house_" + houseIndex);
 					houseIndex++;
