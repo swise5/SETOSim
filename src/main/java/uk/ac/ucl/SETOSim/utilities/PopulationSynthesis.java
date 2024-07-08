@@ -736,7 +736,7 @@ public class PopulationSynthesis {
 		try {
 			System.out.println(houseCandidates.size());
 			
-			String housesFilename = dirName + "ugly_houses.txt";
+			String housesFilename = dirName + "dummyHouses.txt";
 			BufferedWriter record_houses = new BufferedWriter(new FileWriter(housesFilename));
 			
 			record_houses.write("fid\tx\ty\n");

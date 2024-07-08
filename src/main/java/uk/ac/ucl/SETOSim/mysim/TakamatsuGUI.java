@@ -3,6 +3,8 @@ package uk.ac.ucl.SETOSim.mysim;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Toolkit;
+import java.awt.Dimension;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -72,7 +74,7 @@ public class TakamatsuGUI extends GUIState {
 		sim.evacuationPolicy_designatedPerson = false;
 		sim.evacuationPolicy_neighbours = false;
 		super.start();
-		
+
 		// set up portrayals
 		setupPortrayals();
 	}
@@ -122,6 +124,20 @@ public class TakamatsuGUI extends GUIState {
 */
 		heatmap.setField(world.heatmap.getGrid()); 
 		heatmap.setMap(new SimpleColorMap(0, 200, Color.black, Color.red));
+		
+		Dimension screensize = Toolkit.getDefaultToolkit().getScreenSize(); 
+		int width= sim.grid_width; int height = sim.grid_height;
+		double scale = 1.;
+		/*if(width > height)
+			scale = (int) Math.min(.9 * screensize.width, sim.grid_width) / sim.grid_width;
+		else
+			scale = (int) Math.min(.9 * screensize.height, sim.grid_height) / sim.grid_height;
+			*/
+		
+		display.setSize((int)(scale * width),(int)(scale * height));
+		
+
+
 		
 		// reset stuff
 		// reschedule the displayer
