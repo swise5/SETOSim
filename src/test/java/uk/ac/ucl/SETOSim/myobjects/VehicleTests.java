@@ -28,7 +28,7 @@ public class VehicleTests {
 	@Test
 	public void OperatorTakesTheWheel() {
 		
-		this is too complicated, apparently - I need to start from an even simpler, less entangled point
+		//this is too complicated, apparently - I need to start from an even simpler, less entangled point
 		
 		// assign
 			TakamatsuSim world = setupTestingWorld();		
