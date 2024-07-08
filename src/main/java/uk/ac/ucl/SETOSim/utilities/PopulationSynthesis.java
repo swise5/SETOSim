@@ -44,17 +44,22 @@ import ec.util.MersenneTwisterFast;
  */
 public class PopulationSynthesis {
 	
-	String dirName = "/Users/wendi/eclipse-workspace/takamatsu/data/canberraDemo/";//"/Users/swise/Projects/hitomi/data/CanberraDemoData/";
+	String dirName = "/Users/swise/workspace/takamatsu/data/wodenDemo/";
 
 	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
-	String roadsFilename = "bushfireWodenRoads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String roadsFilename = "bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
 	String buildingsFilename = "";
 
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
 
-	int targetNumIndividualsToGenerate = 24630;//466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  9945;//168000;//68700;//197030 ;
+	// Canberra version
+	//int targetNumIndividualsToGenerate = 466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
+	//int targetNumHouseholdsToGenerate =  168000;//68700;//197030 ;
 
+	// Woden version
+	int targetNumIndividualsToGenerate = 24630;// TODO should ideally/potentially be reading from file!!!! 
+	int targetNumHouseholdsToGenerate =  9945;
+	
 	
 	Network roadNetwork;
 	MersenneTwisterFast random;

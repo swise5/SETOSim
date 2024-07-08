@@ -103,7 +103,7 @@ public class TakamatsuSim extends SimState {
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	String dirName = "data/canberraDemo/";//ritsurinDemo/";//
+	String dirName = "data/wodenDemo/";//ritsurinDemo/";//
 	
 	
 	
@@ -112,9 +112,9 @@ public class TakamatsuSim extends SimState {
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
 	public String floodedFilename = "water.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
 	public String waterFilename = "water.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "shelters.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
+	public String sheltersFilename = "bushfireWodenShelter.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
 	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
-	public String roadsFilename = "roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	public String roadsFilename = "bushfireWodenRoads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	
 	public String weightedRoadAttribute = "HIERARCHY";//"highway";//
 /*
