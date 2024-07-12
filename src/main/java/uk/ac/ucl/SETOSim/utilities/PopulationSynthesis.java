@@ -44,10 +44,14 @@ import ec.util.MersenneTwisterFast;
  */
 public class PopulationSynthesis {
 	
-	String dirName = "/Users/swise/workspace/takamatsu/data/wodenDemo/";
+	String dirName = "/Users/swise/workspace/takamatsu/data/okazakiDemo/";
 
 	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
-	String roadsFilename = "bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String roadsFilename = "roads.shp";//"bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String weightedRoadAttribute = "highway";//"HIERARCHY";
+	String [] roadTypesToBuildHouses = {"residential"};//{"RESIDENTIAL", "house"};
+	
+	
 	String buildingsFilename = "";
 
 	String householdsFilename = "KagawaHouseholdsBasic.tsv";
@@ -655,6 +659,14 @@ public class PopulationSynthesis {
 		return houseCandidates;
 	}
 	
+	public boolean canBuildHousesOn(String type) {
+		for(String s: roadTypesToBuildHouses) {
+			if(s.equals(type)) 
+				return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Generate the set of possible houses in the environment, given the residential roads
 	 *  
@@ -693,10 +705,10 @@ public class PopulationSynthesis {
 				ListEdge edge = (ListEdge) p;
 				
 				// if the road is the wrong type, or it has already been found, continue!
-				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute("HIERARCHY");
+				String type = ((MasonGeometry)edge.getInfo()).getStringAttribute(weightedRoadAttribute);
 
 				// we only want residential roads and we don't want the type 1 roads (from survey)
-				if(!(type.contains("RESIDENTIAL")))
+				if(!canBuildHousesOn(type))//.contains("RESIDENTIAL")))
 					continue;
 				if(discoveredEdges.contains(edge))
 					continue;
