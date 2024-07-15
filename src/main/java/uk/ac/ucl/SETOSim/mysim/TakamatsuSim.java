@@ -114,7 +114,7 @@ public class TakamatsuSim extends SimState {
 	public String waterFilename = "water.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
 	public String sheltersFilename = "shelters.shp";//"bushfireWodenShelter.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
 	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
-	public String roadsFilename = "roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	public String roadsFilename = "simpleRoads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
 /*

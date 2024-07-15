@@ -61,8 +61,8 @@ public class PopulationSynthesis {
 	//int targetNumHouseholdsToGenerate =  168000;//68700;//197030 ;
 
 	// Woden version
-	int targetNumIndividualsToGenerate = 24630;// TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  9945;
+	int targetNumIndividualsToGenerate = 204630;// TODO should ideally/potentially be reading from file!!!! 
+	int targetNumHouseholdsToGenerate =  90945;
 	
 	
 	Network roadNetwork;
