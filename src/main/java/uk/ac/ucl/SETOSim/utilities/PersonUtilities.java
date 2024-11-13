@@ -288,7 +288,7 @@ public class PersonUtilities {
 			// clean up
 			
 			
-/*			schedule.scheduleRepeating(1316, new Steppable(){
+		/*	world.schedule.scheduleRepeating(1316, new Steppable(){
 
 				@Override
 				public void step(SimState state) {
@@ -296,8 +296,8 @@ public class PersonUtilities {
 					
 				}
 				
-			}); */
-			
+			}); 
+			*/
 			return agents;
 
 		} catch (Exception e) {
