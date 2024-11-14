@@ -649,6 +649,12 @@ public class Person extends TrafficAgent {
 				if(segment != null)
 					world.updateRoadUseage(((MasonGeometry)edge.info).getStringAttribute("full_id"));
 				//mySpatialMentalModel.addEdge(edge);
+				
+				// they've arrived at a train station, which is their destination
+				if(time >= 0 && finishedPath() && node.hasAttribute("station")) {
+					updateLoc(world.notInSimulation);
+					return 1; // they've successfully left the area of the simulation
+				}
 			}
 			
 			if(segment != null)
@@ -696,4 +702,6 @@ public class Person extends TrafficAgent {
 //	public EvacuationPlan getEvacuationPlan(){ return myPlan; }
 	
 	public boolean hasPath() { return path != null; }
+	public GeoNode getNode() { return node; }
+	public void tempUpdateLoc(Coordinate c) { updateLoc(c); } // TODO remove
 }

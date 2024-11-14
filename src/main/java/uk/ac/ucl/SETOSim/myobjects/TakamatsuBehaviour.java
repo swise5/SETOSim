@@ -490,6 +490,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				if(p.evacuatingTime > 0)
 					p.evacuatingTime = time - p.evacuatingTime;
 				System.out.println("TRAPPED :(");
+				// TODO REMOVE
+				p.tempUpdateLoc(world.notInSimulation);
 				return Double.MAX_VALUE;
 			}
 			

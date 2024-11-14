@@ -39,16 +39,16 @@ public class WayfindingTests {
 		// TESTING //////////////////////////////////////////
 		
 		// did it actually find a path?
-		assert(p.hasPath());
+		assertTrue(p.hasPath());
 		
 		// is it the *correct* path?
 		ArrayList <Edge> myPath = p.getPath();
 		String [] roadIds = new String [] {"2", "1", "0"};//"128714635", "461450875", "128710327", "128712625", "128709855", "128712803", "128720064"};
-		assert(p.getPath().size() == roadIds.length);
+		assertEquals(p.getPath().size(), roadIds.length);
 		
 		for(int i = 0; i < p.getPath().size(); i++) { // confirm segment by segment
 			String roadName = ((MasonGeometry)myPath.get(i).info).getStringAttribute("osm_id"); 
-			assert(roadName.equals(roadIds[i]));
+			assertEquals(roadName, roadIds[i]);
 		}
 	}
 	
@@ -77,20 +77,47 @@ public class WayfindingTests {
 		// TESTING //////////////////////////////////////////
 		
 		// did it find a path?
-		assert(p.hasPath());
+		assertTrue(p.hasPath());
 		
 		// is it the *correct* path?
 		ArrayList <Edge> myPath = p.getPath();
 		String [] roadIds = new String [] {"3"};
-		assert(p.getPath().size() == roadIds.length);
+		assertEquals(p.getPath().size(), roadIds.length);
 		for(int i = 0; i < p.getPath().size(); i++) { // confirm segment by segment
 			String roadName = ((MasonGeometry)myPath.get(i).info).getStringAttribute("osm_id"); 
-			assert(roadName.equals(roadIds[i]));
+			assertEquals(roadName, roadIds[i]);
 		}
 		
 		// but it breaks when we try to move, right?
-		assert(p.navigate(world.resolution) == -1);
+		assertEquals(p.navigate(world.resolution), -1);
 	}
 	
+	@Test
+	public void PeopleEnterAndExitTheMapAtStations() {
+		// SETUP //////////////////////////////////////////
+		
+		// create world, set up the pathfinder, and pull out two nodes
+		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
+		world.pathfinder = new AStar();
+		
+		// read in the stations file
+		world.stationFilename = "simplisticTrainStations.shp";
+		world.setupStations();
 
+		// set up the Person and set them on course to go to the station
+		Coordinate startPoint = new Coordinate(0, 0);
+		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
+		GeoNode station = world.stations.get(0);
+		p.headFor(station.geometry.getCoordinate());
+		
+		// SUT ///////////////////////////////////////////
+		int stillMoving = 1;
+		while(stillMoving > 0)
+			stillMoving = p.navigate(world.resolution);
+
+		// TESTING ///////////////////////////////////////////
+		assertEquals(p.geometry.getCoordinate(), world.notInSimulation); // they have left the simulation area
+		assertEquals(p.getNode(), station); // their exit point was the station
+	}
+	
 }

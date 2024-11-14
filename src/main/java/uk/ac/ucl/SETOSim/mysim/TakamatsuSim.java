@@ -99,7 +99,7 @@ public class TakamatsuSim extends SimState {
 	public static int forecastingWidthParam = 720;//1440; // in ticks
 	
 	
-	public double percSample = .0;//99;
+	public double percSample = .90;//99;
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
@@ -108,13 +108,14 @@ public class TakamatsuSim extends SimState {
 	
 	
 	public static String communicatorFilename = "empty.txt";
-	public static String agentFilename = "dummiestPop.txt";
+	public static String agentFilename = "dummyPop.txt";
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
 	public String floodedFilename = "simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
 	public String waterFilename = "waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
 	public String sheltersFilename = "shelters.shp";//"bushfireWodenShelter.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
 	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
 	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	public String stationFilename = "trainStations.shp";
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
 /*
@@ -159,6 +160,7 @@ public class TakamatsuSim extends SimState {
 	public GeomVectorField fireLayer = new GeomVectorField(grid_width, grid_height);
 	public ArrayList <GeomVectorField> firePoints = new ArrayList <GeomVectorField>();
 	*/
+	public GeomVectorField stationLayer = new GeomVectorField(grid_width, grid_height);
 
 	public GeomGridField heatmap = new GeomGridField();
 	public HashMap <String, Integer> roadUsageRecord = new HashMap <String, Integer> ();
@@ -281,6 +283,9 @@ public class TakamatsuSim extends SimState {
 			// set up the road network
 			setupRoadNetwork();
 			weightRoads();
+			
+			// set up train stations
+			setupStations();
 			
 			// add shelter entrance info
 			setupShelters(shelterRaw);
@@ -533,6 +538,33 @@ public class TakamatsuSim extends SimState {
 			aindex++;
 		}
 */
+	}
+
+	public void setupStations() {
+		System.out.print("Setting up train stations...");
+		
+		InputCleaning.readInVectorLayer(stationLayer, dirName + stationFilename, "train stations", new Bag());
+		
+		// iterate over the stations and connect them to the road network as GeoNodes 
+		for(Object o: stationLayer.getGeometries())
+			attachStation((MasonGeometry) o);
+	}
+	
+	public ArrayList <GeoNode> stations = new ArrayList <GeoNode> ();
+	public Coordinate notInSimulation = new Coordinate(-100, -100);
+	
+	public GeoNode attachStation(MasonGeometry stationLocation) {
+		Bag nearby = networkLayer.getObjectsWithinDistance(stationLocation, resolution);
+		for(Object n: nearby) {
+			if(n instanceof GeoNode) {
+				GeoNode stationNode = (GeoNode) n;
+				stationNode.addAttribute("station", "train");
+				stations.add(stationNode);
+				return stationNode;
+			}
+		}
+		return null;
+
 	}
 	
 	public void setupRoadNetwork() {
