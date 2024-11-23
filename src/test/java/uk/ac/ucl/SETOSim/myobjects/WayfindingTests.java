@@ -100,23 +100,42 @@ public class WayfindingTests {
 		
 		// create world and set up the pathfinder
 		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
+		world.behaviourFramework = new TakamatsuBehaviour(world);
 		world.pathfinder = new AStar();
 		
 		// read in the stations file
 		world.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
 
-		// set up the Person and set them on course to go to the station
+		// set up the locations involved
 		Coordinate startPoint = new Coordinate(0, 0);
-		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
 		GeoNode station = world.stations.get(0);
-		p.headFor(station.geometry.getCoordinate());
+
+		// set up the Person and set them on course to go to work outside the simulation,
+		// so that they will exit the map
+		Person p = PersonTests.createDummyPerson(world, 0, startPoint, null, world.notInSimulation);
+		p.setActivityNode(world.behaviourFramework.travelToWorkNode);
+		world.schedule.scheduleOnce(p);
+		
+/*		// force stopper to slow things down
+		Steppable forceStopper = new Steppable() {
+			@Override
+			public void step(SimState arg0) {
+				// literally just to have something in the schedule
+			}
+		};
+		world.schedule.scheduleRepeating(forceStopper, world.ticks_per_hour); // once an hour
+*/		
+		// advance the timer to the morning peak
+		while(world.schedule.getTime() < 8 * world.ticks_per_hour + 10) {
+			world.schedule.step(world);
+		}
 		
 		// SUT ///////////////////////////////////////////
-		int stillMoving = 1;
+/*		int stillMoving = 1;
 		while(stillMoving > 0)
 			stillMoving = p.navigate(world.resolution);
-
+*/
 		// TESTING ///////////////////////////////////////////
 		assertEquals(p.geometry.getCoordinate(), world.notInSimulation); // they have left the simulation area
 		assertEquals(p.getNode(), station); // their exit point was the station
@@ -278,21 +297,30 @@ public class WayfindingTests {
 		// read in the stations file
 		world.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
+		
+		// set up the shelters
+		world.sheltersFilename = "simplisticShelters.shp";
+		world.setupShelters();
 	
+		// shut down the stations - people are arriving, but cannot leave through them
+		for(GeoNode station: world.stations) {
+			station.addAttribute("CLOSED", true);
+		}
+		
 		// create commuters who arrive in the area unintentionally. They do not have a home location in the
 		// region, and must go to shelters. They can begin by either being:
 		// - travelling on the way to work
 		// - travelling on the way home
-		Person commuter_travellingToHome = PersonTests.createDummyPerson(world, 0, world.notInSimulation, world.notInSimulation),
-			   commuter_travellingToWork = PersonTests.createDummyPerson(world, 1, world.notInSimulation, world.notInSimulation);
+		Person commuter_travellingToHome = PersonTests.createDummyPerson(world, 0, world.notInSimulation, null);//world.notInSimulation, world.notInSimulation);//,
+//			   commuter_travellingToWork = PersonTests.createDummyPerson(world, 1, world.notInSimulation, world.notInSimulation);
 
 		// set them to be travelling either home or to work, as appropriate 
-		commuter_travellingToHome.currentAction = world.behaviourFramework.travelToHomeNode; // those arriving are going home
-		commuter_travellingToWork.currentAction = world.behaviourFramework.travelToWorkNode;
+		commuter_travellingToHome.currentAction = world.behaviourFramework.travelToHomeNode;
+		//commuter_travellingToWork.currentAction = world.behaviourFramework.travelToWorkNode;
 
 		// Schedule them all to start doing things
 		commuter_travellingToHome.scheduleArrival(world.stations.get(0), 8 * world.ticks_per_hour);
-		commuter_travellingToWork.scheduleArrival(world.stations.get(1), 8 * world.ticks_per_hour);
+		//commuter_travellingToWork.scheduleArrival(world.stations.get(1), 8 * world.ticks_per_hour);
 		
 		// holders
 		boolean a_s1_arrived = false, a_s2_arrived = false;
@@ -314,47 +342,19 @@ public class WayfindingTests {
 		
 		// SUT ////////////////////////////////////////////
 		
-/*		double maxTime = 8 * world.ticks_per_hour + 10;
+		double maxTime = 8 * world.ticks_per_hour + 10;
 		while(world.schedule.getTime() < maxTime) {	
-			// arrivers at their stations?
-			if(arriver_station1.geometry.getCoordinate().equals(new Coordinate(-5, 10)))
-				a_s1_arrived = true;
-			if(arriver_station2.geometry.getCoordinate().equals(new Coordinate(10, 10)))
-				a_s2_arrived = true;
-			
-			if(leaver_station1.getActivityNode() == world.behaviourFramework.travelToWorkNode)
-				l_s1_travelling = true;
-			if(leaver_station2.getActivityNode() == world.behaviourFramework.travelToWorkNode)
-				l_s2_travelling = true;
-			
+		
 			world.schedule.step(world);
 		}
 		
 		// TESTING ////////////////////////////////////////
 		
 		// Check that the arrivers have gotten home safely
-		assertEquals(arriver_station1.geometry.getCoordinate(), new Coordinate(0, 0));
-		assertEquals(arriver_station2.geometry.getCoordinate(), new Coordinate(10, 0));
+		assertEquals(commuter_travellingToHome.geometry.getCoordinate(), new Coordinate(0, 0)); // Station 1 -> Shelter 1
 
-		// ...and the leavers have left
-		assertEquals(leaver_station1.geometry.getCoordinate(), world.notInSimulation);
-		assertEquals(leaver_station2.geometry.getCoordinate(), world.notInSimulation);
-		
-		// Did the arrivers pass through the correct stations?
-		assertTrue(a_s1_arrived && a_s2_arrived); // arrivers worked right
-		
-		// Did the leavers leave through the correct nodes?
-		assertEquals(leaver_station1.getNode(), world.stations.get(0));
-		assertEquals(leaver_station2.getNode(), world.stations.get(1));
-		
-		// Did the leavers end up travelling?
-		assertTrue(l_s1_travelling && l_s2_travelling);
-		
 		// Check that they've all changed statuses as appropriate
-		assertEquals(arriver_station1.currentAction, world.behaviourFramework.homeNode);
-		assertEquals(arriver_station2.currentAction, world.behaviourFramework.homeNode);
-		assertEquals(leaver_station1.currentAction, world.behaviourFramework.workNode);
-		assertEquals(leaver_station2.currentAction, world.behaviourFramework.workNode);
-		*/
+		assertEquals(commuter_travellingToHome.currentAction, world.behaviourFramework.evacuatedNode);
+		
 	}
 }

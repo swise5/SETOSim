@@ -39,6 +39,7 @@ public class Person extends TrafficAgent {
 	boolean promptNeighbourEvacuations = false;
 	
 	enum WayfindingType{ perfectKnowledge, wandering, searching};
+	enum MovementOutcome { successfulMovement, blockedMovement, routingFailure, unrecoverableRoutingFailure};
 
 	// movement utilities
 	Vehicle myVehicle = null;
@@ -479,17 +480,32 @@ public class Person extends TrafficAgent {
 	 * @param place - the target destination
 	 * @return 1 for success, -1 for a failure to find a path, -2 for failure based on the provided destination or current position
 	 */
-	public int headFor(Coordinate place) {
+	public MovementOutcome headFor(Coordinate place) {
 
-		//TODO: MUST INCORPORATE ROAD NETWORK STUFF
+		//TODO: MUST INCORPORATE MORE ROAD NETWORK STUFF
 		if(place == null){
 			System.out.println("ERROR: can't move toward nonexistant location");
-			return -1;
+			return MovementOutcome.unrecoverableRoutingFailure;
 		}
-		// if we're trying to leave the simulation map, find a station (an exit point!)
+		//
+		// if we're trying to go somewhere outside the station, reroute to the station and go through it
+		//
 		else if(place.equals(world.notInSimulation)) {
-			GeoNode station = world.getNearestStation(this.geometry);
-			return headFor(station.geometry.getCoordinate());
+			
+			// find the nearest point of exit
+			GeoNode targetStation = world.getNearestOpenStation(geometry);
+			
+			// there might not be any available stations - in that case, stop trying for this destination
+			if(targetStation == null)
+				return MovementOutcome.unrecoverableRoutingFailure;
+
+			// otherwise, try to route through the target station!
+			MovementOutcome routableThroughStation = headFor(targetStation.geometry.getCoordinate());
+			
+			// clean up: the true target is outside the simulated map, and it *might* be routable!
+			targetDestination = place;
+			return routableThroughStation;
+			
 		}
 		
 		// first, record from where the agent is starting
@@ -500,13 +516,13 @@ public class Person extends TrafficAgent {
 			int placed = placeOnEdge(startPoint);
 			if(edge == null || placed < 0) {
 				System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_can't_place_on_an_edge");				
-				return -3; 
+				return MovementOutcome.unrecoverableRoutingFailure; 
 			}
 		}
 		
 		if(!(edge.getTo().equals(node) || edge.getFrom().equals(node))){
 			System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_mismatch_between_current_edge_and_node");
-			return -2;
+			return MovementOutcome.unrecoverableRoutingFailure;
 		}
 
 		// FINDING THE GOAL //////////////////
@@ -518,7 +534,7 @@ public class Person extends TrafficAgent {
 				world.networkEdgeLayer, world.fa);//place);
 		if(destinationNode == null){
 			System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_invalid_destination_node");
-			return -2;
+			return MovementOutcome.blockedMovement;
 		}
 
 		// be sure that if the target location is not a node but rather a point along an edge, that
@@ -543,7 +559,10 @@ public class Person extends TrafficAgent {
 
 		// if it fails, give up
 		if (path == null){
-			return -1;
+			if(this.wayfindingMechanism == WayfindingType.perfectKnowledge)
+				return MovementOutcome.unrecoverableRoutingFailure; 
+			else
+				return MovementOutcome.routingFailure;
 		}
 
 		// CHECK FOR BEGINNING OF PATH ////////
@@ -561,7 +580,7 @@ public class Person extends TrafficAgent {
 			direction = -1;
 		else {
 			System.out.println((int)world.schedule.getTime() + "MOVE_ERROR_mismatch_between_current_edge_and_node_2");
-			return -2;
+			return MovementOutcome.routingFailure;
 		}
 
 		// reset stuff
@@ -581,7 +600,7 @@ public class Person extends TrafficAgent {
 			
 			if(myLastEdge == null){
 				System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_is_too_far_from_any_edge");
-				return -2;
+				return MovementOutcome.routingFailure;
 			}
 			
 			// make sure the point is on the last edge
@@ -598,7 +617,7 @@ public class Person extends TrafficAgent {
 					path.add(0, myLastEdge);
 				else{
 					System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_edge_is_not_included_in_the_path");
-					return -2;
+					return MovementOutcome.routingFailure;
 				}
 			}
 			
@@ -608,7 +627,7 @@ public class Person extends TrafficAgent {
 		this.startIndex = segment.getStartIndex();
 		this.endIndex = segment.getEndIndex();
 
-		return 1;
+		return MovementOutcome.successfulMovement;
 	}
 
 	public double estimateTravelTimeTo(Geometry g){ return(g.distance(this.geometry) / speed); }
@@ -661,7 +680,7 @@ public class Person extends TrafficAgent {
 				//mySpatialMentalModel.addEdge(edge);
 				
 				// they've arrived at a train station, which is their destination
-				if(time >= 0 && finishedPath() && node.hasAttribute("station")) {
+				if(time >= 0 && finishedPath() && node.hasAttribute("station") && targetDestination.distance(world.notInSimulation) < resolution) {
 					updateLoc(world.notInSimulation);
 					return 2; // they've successfully left the area of the simulation
 				}

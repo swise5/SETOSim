@@ -115,7 +115,7 @@ public class TakamatsuSim extends SimState {
 	public String sheltersFilename = "shelters.shp";//"bushfireWodenShelter.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
 	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
 	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
-	public String stationFilename = "trainStations.shp";
+	public String stationFilename = "trainStationsWithPassengers.shp";
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
 /*
@@ -175,12 +175,18 @@ public class TakamatsuSim extends SimState {
 	
 	public AStar pathfinder;
 	
+	public ArrayList <GeoNode> stations = new ArrayList <GeoNode> ();
+	public Coordinate notInSimulation = new Coordinate(-10000, -10000);
+
 	public Bag roadNodes = new Bag();
 	public Network roads = new Network(false);
 	HashMap <MasonGeometry, ArrayList <GeoNode>> localNodes;
 	public Bag terminus_points = new Bag();
 	public Edge [][] roadAdjacencyMatrix = null;
 
+	
+
+	
 	public HashMap <Integer, HashSet> roadClosures;
 	
 	public ArrayList <Person> agents = new ArrayList <Person> ();
@@ -255,11 +261,6 @@ public class TakamatsuSim extends SimState {
 			InputCleaning.readInVectorLayer(roadLayer, dirName + roadsFilename, "road network", new Bag());
 			
 			
-			GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
-			Bag shelterAtts = new Bag();
-			shelterAtts.add("parkingNum"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY");
-			InputCleaning.readInVectorLayer(shelterRaw, dirName + sheltersFilename, "shelters", shelterAtts);
-			
 			// if this hasn't been set, set it!
 			if(this.outputPrefix == null)
 				this.outputPrefix = dirName;
@@ -291,7 +292,7 @@ public class TakamatsuSim extends SimState {
 			setupStations();
 			
 			// add shelter entrance info
-			setupShelters(shelterRaw);
+			setupShelters();
 			
 			/////////////////////
 			///////// Clean up roads for Persons to use ///////////
@@ -549,12 +550,12 @@ public class TakamatsuSim extends SimState {
 		InputCleaning.readInVectorLayer(stationLayer, dirName + stationFilename, "train stations", new Bag());
 		
 		// iterate over the stations and connect them to the road network as GeoNodes 
-		for(Object o: stationLayer.getGeometries())
-			attachStation((MasonGeometry) o);
+		for(Object o: stationLayer.getGeometries()) {
+			MasonGeometry mg = (MasonGeometry) o;
+			GeoNode station = attachStation(mg);
+			
+		}
 	}
-	
-	public ArrayList <GeoNode> stations = new ArrayList <GeoNode> ();
-	public Coordinate notInSimulation = new Coordinate(-10000, -10000);
 	
 	public GeoNode attachStation(MasonGeometry stationLocation) {
 		Bag nearby = networkLayer.getObjectsWithinDistance(stationLocation, resolution);
@@ -570,10 +571,12 @@ public class TakamatsuSim extends SimState {
 
 	}
 	
-	public GeoNode getNearestStation(Geometry g) {
-		GeoNode bestSoFar = stations.get(0);
+	public GeoNode getNearestOpenStation(Geometry g) {
+		GeoNode bestSoFar = null;
 		double bestDist = Double.MAX_VALUE;
 		for(GeoNode s: stations) {
+			if(s.hasAttribute("CLOSED"))
+				continue;
 			double dist = g.distance(s.geometry); 
 			if(dist < bestDist) {
 				bestDist = dist;
@@ -653,7 +656,14 @@ public class TakamatsuSim extends SimState {
 		}
 	}
 	
-	public void setupShelters(GeomVectorField shelterRaw) {
+	
+	public void setupShelters() {
+		
+		GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
+		Bag shelterAtts = new Bag();
+		shelterAtts.add("parkingNum"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY");
+		InputCleaning.readInVectorLayer(shelterRaw, dirName + sheltersFilename, "shelters", shelterAtts);
+		
 		for(Object o: shelterRaw.getGeometries()){
 			MasonGeometry shelter = (MasonGeometry)o;
 			int numParkingSpaces = Integer.MAX_VALUE;
