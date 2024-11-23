@@ -232,6 +232,9 @@ public class TakamatsuSim extends SimState {
 //		random = new MersenneTwisterFast(12345);
 	}
 
+	public void startStubForTesting() {
+		super.start(); // only used for testing to allow schedule etc to be initialised correctly
+	}
 
 	/**
 	 * Read in data and set up the simulation
@@ -551,7 +554,7 @@ public class TakamatsuSim extends SimState {
 	}
 	
 	public ArrayList <GeoNode> stations = new ArrayList <GeoNode> ();
-	public Coordinate notInSimulation = new Coordinate(-100, -100);
+	public Coordinate notInSimulation = new Coordinate(-10000, -10000);
 	
 	public GeoNode attachStation(MasonGeometry stationLocation) {
 		Bag nearby = networkLayer.getObjectsWithinDistance(stationLocation, resolution);
@@ -565,6 +568,20 @@ public class TakamatsuSim extends SimState {
 		}
 		return null;
 
+	}
+	
+	public GeoNode getNearestStation(Geometry g) {
+		GeoNode bestSoFar = stations.get(0);
+		double bestDist = Double.MAX_VALUE;
+		for(GeoNode s: stations) {
+			double dist = g.distance(s.geometry); 
+			if(dist < bestDist) {
+				bestDist = dist;
+				bestSoFar = s;
+			}
+		}
+		
+		return bestSoFar;
 	}
 	
 	public void setupRoadNetwork() {

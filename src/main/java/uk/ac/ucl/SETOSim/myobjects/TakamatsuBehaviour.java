@@ -120,11 +120,15 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					p.removeFromEdge();
 					return 8 * world.ticks_per_hour; // work 8 hours
 				}
-				// if the Person has not been successful in going to work, go home instead.
-				else if(outcome < 0){
+				
+				// if the Person has not been successful in going to work, try one more time to find a path.
+				if(outcome < 0)
+					outcome = p.headFor(p.work);
+
+				// if THAT didn't work, just go home already
+				if(outcome < 0) {
 					p.setActivityNode(travelToHomeNode);
 					p.headFor(p.getHousehold().home);
-					return 1;
 				}
 				// finally, if the outcome was positive and there is still further to travel, keep going.
 				return 1;
@@ -147,7 +151,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				Person p = (Person) s;
 				int outcome = p.navigate(world.resolution);
 				
-				// if the Person has successfully made it to work, begin working for 8 hours. 
+				// if the Person has successfully made it home, stay there for a while. 
 				if(outcome > 0 && p.finishedPath()){
 					p.setActivityNode(homeNode);
 					p.removeFromEdge();

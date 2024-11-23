@@ -15,6 +15,7 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import sim.engine.SimState;
+import sim.engine.Steppable;
 import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
@@ -76,10 +77,14 @@ public class Person extends TrafficAgent {
 		// add it to the space
 		super((new GeometryFactory()).createPoint(position));
 		this.space = world.agentsLayer;
-		if(this.space != null)
+		
+		// make sure the space exists
+		if(this.space == null)
+			System.out.println("WARNING: trying to add Person to NONEXISTENT SPACE");
+		else if(!position.equals(world.notInSimulation))
 			this.space.addGeometry(this);
-		else 
-			System.out.println("WARNING: Agent being added to NONEXISTENT SPACE");
+		// otherwise, we simply don't add it yet			
+
 		this.isMovable = true;
 
 		
@@ -150,9 +155,9 @@ public class Person extends TrafficAgent {
 			beginEvacuating();
 			return;
 		}
-		else if(isEvacuating()) {
+	//	else if(isEvacuating()) {
 			delta = currentAction.next(this, time);
-		}
+	//	}
 		
 //
 /*		System.out.println(time + "\t" + this.myID + ":\t" + this.geometry.getCoordinate() + "\t" + this.node.toString() + this.edge.toString());
@@ -481,6 +486,11 @@ public class Person extends TrafficAgent {
 			System.out.println("ERROR: can't move toward nonexistant location");
 			return -1;
 		}
+		// if we're trying to leave the simulation map, find a station (an exit point!)
+		else if(place.equals(world.notInSimulation)) {
+			GeoNode station = world.getNearestStation(this.geometry);
+			return headFor(station.geometry.getCoordinate());
+		}
 		
 		// first, record from where the agent is starting
 		startPoint = this.geometry.getCoordinate();
@@ -653,7 +663,7 @@ public class Person extends TrafficAgent {
 				// they've arrived at a train station, which is their destination
 				if(time >= 0 && finishedPath() && node.hasAttribute("station")) {
 					updateLoc(world.notInSimulation);
-					return 1; // they've successfully left the area of the simulation
+					return 2; // they've successfully left the area of the simulation
 				}
 			}
 			
@@ -667,6 +677,21 @@ public class Person extends TrafficAgent {
 				return 1;
 		}
 		return -1;
+	}
+	
+	public void scheduleArrival(GeoNode entryPoint, double time) {
+		
+		Person holder = this; // hideous hack
+		world.schedule.scheduleOnce(time, new Steppable() {
+
+			@Override
+			public void step(SimState arg0) {
+				holder.geometry = (new GeometryFactory()).createPoint(entryPoint.geometry.getCoordinate());
+				space.addGeometry(holder);
+				world.schedule.scheduleOnce(time + 1, holder);
+			}
+			
+		});
 	}
 	
 	//

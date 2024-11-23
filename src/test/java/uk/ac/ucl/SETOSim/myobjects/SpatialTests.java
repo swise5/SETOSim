@@ -20,6 +20,7 @@ public class SpatialTests {
 
 	public static TakamatsuSim setupTestingWorld(String testingDirectory, long key) {
 		TakamatsuSim ts = new TakamatsuSim(key);
+		ts.startStubForTesting();
 		ts.dirName = testingDirectory;
 		return ts;
 	}

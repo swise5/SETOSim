@@ -8,8 +8,16 @@ import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 
 public class PersonTests {
 
-	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate location) {
-		Person p = new Person("dummy_" + id, location, null, null, null, 0, 0, world);
+	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate startLocation) {
+		return createDummyPerson(world, id, startLocation, null, null);
+	}
+	
+	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate startLocation, Coordinate homeLocation) {
+		return createDummyPerson(world, id, startLocation, homeLocation, null);
+	}
+
+	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate startLocation, Coordinate homeLocation, Coordinate workLocation) {
+		Person p = new Person("dummy_" + id, startLocation, homeLocation, workLocation, null, 0, 0, world);
 		return p;
 	}
 	
