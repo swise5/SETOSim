@@ -102,8 +102,11 @@ public class Person extends TrafficAgent {
 			world.setLeader();
 			isLeader = true;
 		}
-		mySpatialMentalModel = new SpatialMentalModel();
 		
+		if(this.wayfindingMechanism != WayfindingType.perfectKnowledge)
+			mySpatialMentalModel = new SpatialMentalModel(); // otherwise, leave it as null!
+	
+
 		// set the wayfinding mechanism based on probability
 		//if(world.random.nextDouble() < .8)
 		//	this.wayfindingMechanism = 1;
@@ -152,7 +155,7 @@ public class Person extends TrafficAgent {
 		double delta = Double.MAX_VALUE;
 		
 		// check for own home
-		if(!isEvacuating() && state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
+		if(!isEvacuating() && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
 			beginEvacuating();
 			return;
 		}
@@ -193,6 +196,14 @@ public class Person extends TrafficAgent {
 		
 	*/	
 		state.schedule.scheduleOnce(time+delta, this);
+	}
+	
+	boolean shouldIEvacuate() {
+		if(myHousehold != null && myHousehold.inHazardZone) // my house is flooded
+			return true;
+		else if(this.inundated) // I'm in the middle of a flood
+			return true;
+		return false;
 	}
 
 	void wander() {
@@ -372,6 +383,9 @@ public class Person extends TrafficAgent {
 			setActivityNode(world.behaviourFramework.evacuatingNode);
 		}
 		else if(!this.myHousehold.inHazardZone){
+
+			if(evacuatingTime < 0)
+				evacuatingTime = world.schedule.getTime(); // record when we started, at least
 			
 			setActivityNode(world.behaviourFramework.travelToHomeShelteringNode);
 			headFor(myHousehold.home);
@@ -499,6 +513,9 @@ public class Person extends TrafficAgent {
 			if(targetStation == null)
 				return MovementOutcome.unrecoverableRoutingFailure;
 
+			if(targetStation.geometry.getCoordinate().distance(world.notInSimulation) < world.resolution)
+				System.out.println("what");
+			
 			// otherwise, try to route through the target station!
 			MovementOutcome routableThroughStation = headFor(targetStation.geometry.getCoordinate());
 			
@@ -515,13 +532,15 @@ public class Person extends TrafficAgent {
 		if(edge == null) {
 			int placed = placeOnEdge(startPoint);
 			if(edge == null || placed < 0) {
-				System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_can't_place_on_an_edge");				
+				if(world.verbose)
+					System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_can't_place_on_an_edge");				
 				return MovementOutcome.unrecoverableRoutingFailure; 
 			}
 		}
 		
 		if(!(edge.getTo().equals(node) || edge.getFrom().equals(node))){
-			System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_mismatch_between_current_edge_and_node");
+			if(world.verbose)
+				System.out.println( (int)world.schedule.getTime() + "\tMOVE_ERROR_mismatch_between_current_edge_and_node");
 			return MovementOutcome.unrecoverableRoutingFailure;
 		}
 
@@ -533,7 +552,8 @@ public class Person extends TrafficAgent {
 		GeoNode destinationNode = RoadNetworkUtilities.getClosestGeoNode(targetDestination, world.resolution, world.networkLayer, 
 				world.networkEdgeLayer, world.fa);//place);
 		if(destinationNode == null){
-			System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_invalid_destination_node");
+			if(world.verbose)
+				System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_invalid_destination_node");
 			return MovementOutcome.blockedMovement;
 		}
 
@@ -579,7 +599,8 @@ public class Person extends TrafficAgent {
 		else if (edge.getFrom().equals(node))
 			direction = -1;
 		else {
-			System.out.println((int)world.schedule.getTime() + "MOVE_ERROR_mismatch_between_current_edge_and_node_2");
+			if(world.verbose)
+				System.out.println((int)world.schedule.getTime() + "MOVE_ERROR_mismatch_between_current_edge_and_node_2");
 			return MovementOutcome.routingFailure;
 		}
 
@@ -599,7 +620,8 @@ public class Person extends TrafficAgent {
 					world.networkEdgeLayer, world.fa);
 			
 			if(myLastEdge == null){
-				System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_is_too_far_from_any_edge");
+				if(world.verbose)
+					System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_is_too_far_from_any_edge");
 				return MovementOutcome.routingFailure;
 			}
 			
@@ -616,7 +638,8 @@ public class Person extends TrafficAgent {
 						|| lastEdge.getTo().equals(myLastEdge.getFrom()) || lastEdge.getTo().equals(myLastEdge.getTo()))
 					path.add(0, myLastEdge);
 				else{
-					System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_edge_is_not_included_in_the_path");
+					if(world.verbose)
+						System.out.println((int)world.schedule.getTime() + "\tMOVE_ERROR_goal_point_edge_is_not_included_in_the_path");
 					return MovementOutcome.routingFailure;
 				}
 			}
@@ -636,11 +659,13 @@ public class Person extends TrafficAgent {
 		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
 		
 		if(edge == null){
-			System.out.println("\tINIT_ERROR: no nearby edge");
+			if(world.verbose)
+				System.out.println("\tINIT_ERROR: no nearby edge");
 			return -1;
 		}
 		else if(((MasonGeometry)edge.info).getStringAttribute("open").equals("CLOSED")){
-			System.out.println("\tINIT_ERROR: edge is closed");
+			if(world.verbose)
+				System.out.println("\tINIT_ERROR: edge is closed");
 			edge = null; // reset
 			return -2;
 		}
@@ -658,7 +683,8 @@ public class Person extends TrafficAgent {
 		endIndex = segment.getEndIndex();
 		currentIndex = segment.indexOf(c);
 		
-		mySpatialMentalModel.addEdge(edge);
+		if(mySpatialMentalModel != null)
+			mySpatialMentalModel.addEdge(edge);
 		return 1;
 	}
 

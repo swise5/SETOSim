@@ -23,7 +23,6 @@ public class PersonTests {
 	
 	@Test
 	public void PersonFindsShortestRoute() {
-
 	}
 }
 	

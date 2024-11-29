@@ -14,6 +14,8 @@ import uk.ac.ucl.SETOSim.utilities.InputCleaning;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+
 public class SpatialTests {
 
 	public static String testingDirectory = "data/testing/";
@@ -57,6 +59,22 @@ public class SpatialTests {
 			assert(mg.getStringAttribute("open").equals("OPEN"));
 		}
 		
+	}
+	
+	@Test
+	public void DummyHelpful() {
+		TakamatsuSim sut = setupTestingWorld(testingDirectory, 1);
+		ArrayList <Double> vals = new ArrayList <Double> ();
+		
+		double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
+		for(int i = 0; i < 1000; i++) {
+			double d = sut.random.nextGaussian();
+			vals.add(d);
+			if(d < min) min = d;
+			if(d > max) max = d;
+		}
+		
+		System.out.println(vals.size());
 	}
 
 }

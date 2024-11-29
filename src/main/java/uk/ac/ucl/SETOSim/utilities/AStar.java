@@ -126,7 +126,14 @@ public class AStar
            {
             	Edge l = (Edge) o;
             	
-            	if(knownEdges != null && ! knownEdges.contains(l)) // ignore unknown edges
+            	// we may want to target OR avoid the known set of edges
+            	// if we want to exclusively uknown edges, we want to skip anything NOT in known edges
+            	boolean unknownEdge = knownEdges != null && !knownEdges.contains(l);
+            	if(unknownEdge) 
+            		continue;
+
+            	// otherwise, if the edge is closed, we can't take it
+            	else if(((MasonGeometry)l.getInfo()).getStringAttribute("open").equals("CLOSED"))
             		continue;
             	
                 GeoNode next = null;

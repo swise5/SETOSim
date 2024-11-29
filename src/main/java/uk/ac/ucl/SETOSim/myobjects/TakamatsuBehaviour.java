@@ -50,8 +50,11 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 							p.setActivityNode(travelToWorkNode);
 							p.headFor(p.work);
 						}
-						else // if we can't leave, just proceed straight to sheltering
+						else {// if we can't leave, just proceed straight to sheltering
 							p.setActivityNode(shelteringNode);
+							p.evacuatingTime = -2;
+							return 1;
+						}
 						
 						return 1;
 					}
@@ -93,6 +96,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						p.headFor(p.getHousehold().home);
 					else { // if can't enter it, shelter in place here
 						p.setActivityNode(shelteringNode);
+						p.evacuatingTime = -2; // set distinctly to indicate that they were not able to evacuate at all
+						return 1;
 					}
 					
 					return 1;
@@ -366,8 +371,14 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						p.targetShelter = null;
 						
 						// they might be stuck in their house, in which case they'll shelter in place
-						if(p.geometry.getCoordinate().distance(p.getHousehold().home) < world.resolution)
+						if(p.geometry.getCoordinate().distance(p.getHousehold().home) < world.resolution) {
 							p.setActivityNode(shelteringNode);
+							if(p.evacuatingTime < 0)
+								p.evacuatingTime = -2;
+							else
+								p.evacuatingTime = time - p.evacuatingTime;
+							return 1;
+						}
 						
 						// otherwise, the Person might be able to find a path home. Try it!
 						else if(p.headFor(p.getHousehold().home) == MovementOutcome.unrecoverableRoutingFailure) 
@@ -377,6 +388,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						else // there may be a path! Try to go home!
 							p.setActivityNode(travelToHomeShelteringNode);
 					}
+					else
+						p.targetShelter = myShelter;
 					
 					// if the route was unworkable, any carers will need to reroute as well
 					if(p.dependentOf != null) {
@@ -447,6 +460,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					// it may be that the person should stay home and shelter there - if so, do so!
 					if(p.targetShelter == null) {
 						p.setActivityNode(shelteringNode);
+						p.evacuatingTime = time - p.evacuatingTime; // finished the journey
+						return 1;
 					}
 					
 					// otherwise, they may now have a target Shelter
@@ -456,8 +471,11 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						MovementOutcome headToShelter = p.headFor(p.targetShelter.entrance);
 						
 						// if it doesn't work, just shelter in place
-						if(headToShelter == MovementOutcome.unrecoverableRoutingFailure)
+						if(headToShelter == MovementOutcome.unrecoverableRoutingFailure) {
 							p.setActivityNode(shelteringNode);
+							p.evacuatingTime = time - p.evacuatingTime; // journey cannot continue
+							return 1;
+						}
 						else // otherwise, start preparing to evacuate
 							p.setActivityNode(preparingToEvacuateNode);
 						
@@ -497,8 +515,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 
 				Person p = (Person) s;	
 				p.removeFromEdge();
-				if(p.evacuatingTime > 0)
-					p.evacuatingTime = time - p.evacuatingTime;
+//				if(p.evacuatingTime > 0)
+//					p.evacuatingTime = time - p.evacuatingTime;
 
 				if(p.dependentOf != null)
 					System.out.println("nooo don't come visit");
@@ -524,7 +542,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					p.evacuatingTime = time - p.evacuatingTime;
 				System.out.println("TRAPPED :(");
 				// TODO REMOVE
-				p.tempUpdateLoc(world.notInSimulation);
+				//p.tempUpdateLoc(world.notInSimulation);
 				return Double.MAX_VALUE;
 			}
 			
@@ -657,7 +675,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					if(p.getPath() == null){ // there may be no path forward - in which case the person is trapped
 						p.setActivityNode(trappedNode);
 						System.out.println(p.getMyID() + "\ttrapped");
-						return Double.MAX_VALUE;
+						return 1;//Double.MAX_VALUE;
 					}
 					return 1;
 					//p.headFor(p.getHome()); // try another path

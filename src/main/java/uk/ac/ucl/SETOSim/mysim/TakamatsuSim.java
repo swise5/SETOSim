@@ -91,15 +91,17 @@ public class TakamatsuSim extends SimState {
 	// POLICIES
 	
 	public boolean tsunami = false;
-	public boolean evacuationPolicy_neighbours = true;
-	public boolean evacuationPolicy_designatedPerson = true;
+	public boolean evacuationPolicy_neighbours = false;
+	public boolean evacuationPolicy_designatedPerson = false;
 	public static double neighbourDistance = 100; // meters
 	public static double hazardThresholdDistance = 100; // meters
-	public static int forecastArrivalTime = 720;//1440; // in ticks
+	public static int forecastArrivalTime = (int)(15 * ticks_per_hour);//720;//1440; // in ticks
 	public static int forecastingWidthParam = 720;//1440; // in ticks
 	
 	
-	public double percSample = .90;//99;
+	public double percSample = .90;// percent TO OMIT
+	public int numCommutersOutbound = 21331; // TODO this is a hack for Okazaki demo
+	public int numCommutersInbound = 16458;
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
@@ -216,9 +218,10 @@ public class TakamatsuSim extends SimState {
 	
 	long mySeed = 0;
 	boolean exportHeatmap = false; // export the heatmap or no?
-	boolean verbose = false;
-	public boolean ageSpecificSpeeds = true;
+	public boolean verbose = false;
+	public boolean ageSpecificSpeeds = false;
 	public double likelihoodOfOwningVehicle = .6;
+	
 	
 	/////////////// END Parameters ///////////////////////////////////////
 
@@ -258,6 +261,8 @@ public class TakamatsuSim extends SimState {
 			InputCleaning.readInVectorLayer(floodedLayer, dirName + floodedFilename, "flooding", new Bag());
 			
 			InputCleaning.readInVectorLayer(buildingLayer, dirName + buildingsFilename, "buildings", new Bag());
+			Bag roadAttsToRead = new Bag();
+			roadAttsToRead.add("full_id"); roadAttsToRead.add("highway");
 			InputCleaning.readInVectorLayer(roadLayer, dirName + roadsFilename, "road network", new Bag());
 			
 			
@@ -324,7 +329,7 @@ public class TakamatsuSim extends SimState {
 //			setupCommunicators(dirName + communicatorFilename);
 
 			// make sure all Households in the immediate area know that they are in the area
-			alertHouseholdsOfHazard();
+			//alertHouseholdsOfHazard();
 			
 			// SCHEDULE FLOOD
 			scheduleFlood();
@@ -464,11 +469,17 @@ public class TakamatsuSim extends SimState {
 		//agents.addAll(PersonUtilities.setupHouseholdsAtRandom(networkLayer, schedule, this, fa));
 		int numRoadNodes = roadNodes.size();
 		int numPeople = agents.size();
+		
+		double proportionOfCommuters = percSample * numCommutersOutbound / numPeople;
+		
 		for(Person p: agents){
 			
-			// throwing this in here to make sure they are moving correctly
-			Coordinate workC = 
-					((GeoNode)roadNodes.get(random.nextInt(numRoadNodes))).geometry.getCoordinate();
+			// workplaces
+			Coordinate workC;
+			if(random.nextDouble() < proportionOfCommuters)// TODO add ages back in && p.getAge() > 3)
+				workC = this.notInSimulation; 
+			else
+				workC = ((GeoNode)roadNodes.get(random.nextInt(numRoadNodes))).geometry.getCoordinate();
 			p.setWorkLocation(workC);
 			
 			// if designating dependents for evacuation, do so!
@@ -502,6 +513,25 @@ public class TakamatsuSim extends SimState {
 				}
 			}
 		}
+		
+/*		double numberOfInboundCommuters = percSample * numCommutersInbound;
+		for(int i = 0; i < numberOfInboundCommuters; i++) {
+		
+			// where do they work and how will they get there?
+			Geometry workGeom = ((GeoNode)roadNodes.get(random.nextInt(numRoadNodes))).geometry;
+			Coordinate workC = workGeom.getCoordinate();
+			GeoNode arrivalStation = getNearestOpenStation(workGeom);
+			
+			// create the commuter TODO less dummy values???
+			Person p = new Person("commuter_" + i, notInSimulation, notInSimulation, workC, null, 0, 0, this);
+			p.setActivityNode(behaviourFramework.getEntryPoint());
+			agents.add(p);
+			
+			// schedule arrival during morning rush hour
+			double arrivalTime = 8.5 * this.ticks_per_hour + random.nextGaussian() * this.ticks_per_hour; 
+			p.scheduleArrival(arrivalStation, arrivalTime);
+		}
+		*/
 	}
 	
 	public void setupPersonRoadKnowledge() {
@@ -552,13 +582,13 @@ public class TakamatsuSim extends SimState {
 		// iterate over the stations and connect them to the road network as GeoNodes 
 		for(Object o: stationLayer.getGeometries()) {
 			MasonGeometry mg = (MasonGeometry) o;
-			GeoNode station = attachStation(mg);
+			GeoNode station = attachStation(mg, this.resolution);
 			
 		}
 	}
 	
-	public GeoNode attachStation(MasonGeometry stationLocation) {
-		Bag nearby = networkLayer.getObjectsWithinDistance(stationLocation, resolution);
+	public GeoNode attachStation(MasonGeometry stationLocation, double bestRes) {
+		Bag nearby = networkLayer.getObjectsWithinDistance(stationLocation, bestRes);
 		for(Object n: nearby) {
 			if(n instanceof GeoNode) {
 				GeoNode stationNode = (GeoNode) n;
@@ -567,7 +597,10 @@ public class TakamatsuSim extends SimState {
 				return stationNode;
 			}
 		}
-		return null;
+		if(bestRes < networkLayer.fieldHeight)
+			return attachStation(stationLocation, bestRes * 2);
+		else
+			return null;
 
 	}
 	
@@ -633,7 +666,7 @@ public class TakamatsuSim extends SimState {
 				
 				try {
 					int ultimateDepth = edgeInfo.getIntegerAttribute("depth").intValue();
-					if(roadClosures.containsKey(ultimateDepth))
+					if(ultimateDepth > 0 && roadClosures.containsKey(ultimateDepth))
 						roadClosures.get(ultimateDepth).add(edgeInfo);
 					else {
 						HashSet newTiming = new HashSet();
@@ -808,18 +841,18 @@ public class TakamatsuSim extends SimState {
 //					inWater = "inWater";
 //
 				String inWater = "notSubmerged";
-				if(a.getHousehold().inHazardZone())
+				if(a.getHousehold() != null && a.getHousehold().inHazardZone())
 					inWater = "inZone";
 
 				Coordinate homeCoord = a.getHousehold().getHome();
 				Coordinate locCoord = a.geometry.getCoordinate();
-				String dependent = "<none>";
+			/*	String dependent = "<none>";
 				if(a.dependent != null)
 					dependent = a.dependent.getMyID();
 				String dependentOf = "<none>";
 				if(a.dependentOf != null)
 					dependentOf = a.dependentOf.getMyID();
-				
+			*/	
 				double myTime = a.getEvacuatingTime();
 				if(!a.getActivityNode().isEndpoint()) {
 					myTime = worldTime - a.getEvacuatingTime();
