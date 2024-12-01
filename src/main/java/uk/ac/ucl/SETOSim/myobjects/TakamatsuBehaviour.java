@@ -52,7 +52,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						}
 						else {// if we can't leave, just proceed straight to sheltering
 							p.setActivityNode(shelteringNode);
-							p.evacuatingTime = -2;
+							p.evacuationRecord += ",SHELTER_AT_HOME:" + (int)time;
 							return 1;
 						}
 						
@@ -96,7 +96,12 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						p.headFor(p.getHousehold().home);
 					else { // if can't enter it, shelter in place here
 						p.setActivityNode(shelteringNode);
-						p.evacuatingTime = -2; // set distinctly to indicate that they were not able to evacuate at all
+						String report = "SHELTER_AT_WORK:" + time;
+						if(p.evacuationRecord== null)
+							p.evacuationRecord = report;
+						else
+							p.evacuationRecord += "," + report;
+						//p.evacuatingTime = -2; // set distinctly to indicate that they were not able to evacuate at all
 						return 1;
 					}
 					
@@ -233,7 +238,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 					// if so, begin evacuating and set the carer's status to be escorting
 					p.dependentOf.setActivityNode(escortDependentNode);
-					System.out.println(p.myID + "\tpickedUpBy\t" + p.dependentOf.getMyID());
+					if(p.world.verbose)
+						System.out.println(p.myID + "\tpickedUpBy\t" + p.dependentOf.getMyID());
 					world.schedule.scheduleOnce(p.dependentOf);
 					
 					// if at least one of them has a vehicle, make sure both are travelling at that speed
@@ -274,10 +280,11 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				// if this is the first tick the Person is evacuating, set everything up!
 				// =======
 				
-				if(p.evacuatingTime < 0) {
+				if(p.evacuationRecord == null) {
 					
 					// store the current simulation time in the attribute
-					p.evacuatingTime = time; 
+					//p.evacuatingTime = time;
+					p.evacuationRecord = "START_EVACUATING:" + time;
 					
 					// pick a shelter and try to find a route there
 					Shelter myShelter = p.selectTargetShelter(ts.shelterLayer);
@@ -321,13 +328,15 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					if(shelter.roomForN(1)){
 						shelter.addNewPerson(p);
 						p.setActivityNode(evacuatedNode);
+						p.evacuationRecord += ",ENTER_SHELTER:" + (int)time;
+						//p.evacuatingTime = time - p.evacuatingTime;
 						
 						// special record-keeping if the Person is being escorted as a dependent
 						if(p.dependentOf != null) {
 							Person carer = p.dependentOf;
 							carer.setActivityNode(travelToHomeNode);
 							carer.headFor(carer.getHousehold().home);
-							carer.evacuatingTime = time - carer.evacuatingTime;
+							// TODO deal with this shit carer.evacuatingTime = time - carer.evacuatingTime;
 							world.numAssisting--;
 						}
 
@@ -339,7 +348,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					else {
 						p.turnedAwayFromShelterCount += 1;
 						p.fullShelters.add(shelter);
-						System.out.println(p.getMyID() + "\tshelterFull");						
+						if(p.world.verbose)
+							System.out.println(p.getMyID() + "\tshelterFull");						
 					}
 					
 				}
@@ -373,11 +383,12 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						// they might be stuck in their house, in which case they'll shelter in place
 						if(p.geometry.getCoordinate().distance(p.getHousehold().home) < world.resolution) {
 							p.setActivityNode(shelteringNode);
-							if(p.evacuatingTime < 0)
+							p.evacuationRecord += ",ABORT_EVAC_TO_SHELTER_AT_HOME:" + (int)time;
+/*							if(p.evacuatingTime < 0)
 								p.evacuatingTime = -2;
 							else
 								p.evacuatingTime = time - p.evacuatingTime;
-							return 1;
+*/							return 1;
 						}
 						
 						// otherwise, the Person might be able to find a path home. Try it!
@@ -421,12 +432,14 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 
 				Person p = (Person) s;
 				p.removeFromEdge();
+				p.evacuationRecord += ",FINISH_EVAC:" + (int)time;
 				
-				if(p.evacuatingTime > 0)
-					p.evacuatingTime = time - p.evacuatingTime;
+//				if(p.evacuatingTime > 0)
+//					p.evacuatingTime = time - p.evacuatingTime;
 
 				
-				System.out.println(p.getMyID() + "\tsuccessfulEvac");
+				if(p.world.verbose)
+					System.out.println(p.getMyID() + "\tsuccessfulEvac");
 				world.numAttemptingEvac--;
 
 				return Double.MAX_VALUE;
@@ -458,28 +471,19 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					// TODO more nuance
 					
 					// it may be that the person should stay home and shelter there - if so, do so!
-					if(p.targetShelter == null) {
+					if(p.targetShelter == null || p.headFor(p.targetShelter.entrance) == MovementOutcome.unrecoverableRoutingFailure) {
 						p.setActivityNode(shelteringNode);
-						p.evacuatingTime = time - p.evacuatingTime; // finished the journey
+						p.evacuationRecord += ",ARRIVED_TO_SHELTER_AT_HOME:" + (int)time;
+//						p.evacuatingTime = time - p.evacuatingTime; // finished the journey
 						return 1;
 					}
 					
 					// otherwise, they may now have a target Shelter
-					else {
-						
-						// try to head for a shelter
-						MovementOutcome headToShelter = p.headFor(p.targetShelter.entrance);
-						
-						// if it doesn't work, just shelter in place
-						if(headToShelter == MovementOutcome.unrecoverableRoutingFailure) {
-							p.setActivityNode(shelteringNode);
-							p.evacuatingTime = time - p.evacuatingTime; // journey cannot continue
-							return 1;
-						}
-						else // otherwise, start preparing to evacuate
-							p.setActivityNode(preparingToEvacuateNode);
-						
+					else {// otherwise, start preparing to evacuate
+						p.setActivityNode(preparingToEvacuateNode);
+						p.evacuationRecord += ",ARRIVED_HOME_PREP_STARTED:" + (int)time;
 					}
+						
 					
 				}
 				
@@ -490,9 +494,10 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					// it might be the case that the Person can find another route home
 					MovementOutcome headToHome = p.headFor(p.getHousehold().getHome());
 					
-					if(headToHome == MovementOutcome.unrecoverableRoutingFailure) // ...or not...
+					if(headToHome == MovementOutcome.unrecoverableRoutingFailure) { // ...or not...
 						p.setActivityNode(trappedNode); // ...in which case they're trapped
-					
+						p.evacuationRecord += ",TRAPPED_TRYING_TO_REACH_HOME:" + (int)time;
+					}
 				}
 				
 				// otherwise, the Person may still be en route to their home - keep travelling!
@@ -515,6 +520,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 
 				Person p = (Person) s;	
 				p.removeFromEdge();
+				p.evacuationRecord += ",SHELTERING:" + time + ",DONE";
 //				if(p.evacuatingTime > 0)
 //					p.evacuatingTime = time - p.evacuatingTime;
 
@@ -538,9 +544,9 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 			public double next(Steppable s, double time) {
 
 				Person p = (Person) s;
-				if(p.evacuatingTime > 0)
-					p.evacuatingTime = time - p.evacuatingTime;
-				System.out.println("TRAPPED :(");
+				p.evacuationRecord += ",TRAPPED:" + time + ",DONE";
+				if(p.world.verbose)
+					System.out.println("TRAPPED :(");
 				// TODO REMOVE
 				//p.tempUpdateLoc(world.notInSimulation);
 				return Double.MAX_VALUE;
@@ -612,7 +618,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						return 1;
 					}
 
-					System.out.println(p.myID + "\twaitingFor\t" + p.dependent.getMyID());
+					if(p.world.verbose)
+						System.out.println(p.myID + "\twaitingFor\t" + p.dependent.getMyID());
 					return Double.MAX_VALUE; // otherwise, wait for them to be ready!
 				}
 				
@@ -649,10 +656,10 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					
 					// successfully delivered to the shelter! Now go home!
 					if(p.dependent.currentAction == evacuatedNode) {
-						if(p.evacuatingTime <= time)
+				/*		if(p.evacuatingTime <= time) TODO fix this nonsense
 							System.out.println("WHAT HOW");
 						p.evacuatingTime = time - p.evacuatingTime; // record the end of the escorting! (TODO still need to go home though...)
-						p.setActivityNode(travelToHomeNode);
+				*/		p.setActivityNode(travelToHomeNode);
 						p.headFor(p.getHousehold().home);
 						if(p.myVehicle == null)
 							p.setSpeed(TakamatsuSim.speed_pedestrian); // bump them back up in speed once separated
@@ -667,14 +674,16 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				else if(p.targetShelter == null || outcome < 0){ // try to replan
 					
 					if(p.dependent.targetDestination == null) {
-						System.out.println(p.myID + "'s dependent has no goal: replanning!");
+						if(p.world.verbose)
+							System.out.println(p.myID + "'s dependent has no goal: replanning!");
 						return 1;
 					}
 					p.headFor(p.dependent.targetDestination);
 					
 					if(p.getPath() == null){ // there may be no path forward - in which case the person is trapped
 						p.setActivityNode(trappedNode);
-						System.out.println(p.getMyID() + "\ttrapped");
+						if(p.world.verbose)
+							System.out.println(p.getMyID() + "\ttrapped");
 						return 1;//Double.MAX_VALUE;
 					}
 					return 1;

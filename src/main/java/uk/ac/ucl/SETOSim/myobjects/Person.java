@@ -58,9 +58,10 @@ public class Person extends TrafficAgent {
 	public boolean inundated = false;
 	
 	EvacuationPlan myPlan = null;
+	String evacuationRecord = null;
 	//int evacuating = TakamatsuBehaviour.notEvacuating;
-	boolean evacuatingCompleted = false;
-	double evacuatingTime = -1;
+//	boolean evacuatingCompleted = false;
+//	double evacuatingTime = -1;
 	Shelter targetShelter = null;
 	double distanceEstimationWeighting = 2;
 	
@@ -76,7 +77,7 @@ public class Person extends TrafficAgent {
 	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, int age, int sex, TakamatsuSim world){
 
 		// add it to the space
-		super((new GeometryFactory()).createPoint(position));
+		super((new GeometryFactory()).createPoint(new Coordinate(position.x, position.y)));
 		this.space = world.agentsLayer;
 		
 		// make sure the space exists
@@ -131,15 +132,15 @@ public class Person extends TrafficAgent {
 		
 		// create a new Household for the person
 		if(home == null && household == null) // if they don't have a home location, assume initiated at home
-			myHousehold = new Household(position);
+			myHousehold = new Household(new Coordinate(position.x, position.y));
 		else if(household == null)
-			myHousehold = new Household(home);
+			myHousehold = new Household(new Coordinate(home.x, home.y));
 		else
 			myHousehold = household;
 
 		// set up the workspace if needed
 		if(work != null)
-			this.work = (Coordinate)work.clone();
+			this.work = new Coordinate(work.x, work.y);//(Coordinate)work.clone();
 		
 	}
 	
@@ -155,7 +156,7 @@ public class Person extends TrafficAgent {
 		double delta = Double.MAX_VALUE;
 		
 		// check for own home
-		if(!isEvacuating() && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
+		if(this.evacuationRecord == null && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
 			beginEvacuating();
 			return;
 		}
@@ -316,8 +317,8 @@ public class Person extends TrafficAgent {
 	void beginEvacuatingDependent() {
 		if(this.currentAction != world.behaviourFramework.travelToDependentNode) {
 			setActivityNode(world.behaviourFramework.travelToDependentNode);
-			if(this.evacuatingTime < 0)
-				this.evacuatingTime = world.schedule.getTime();
+	// TODO fix		if(this.evacuatingTime < 0)
+	//			this.evacuatingTime = world.schedule.getTime();
 			this.headFor(dependent.getHousehold().home);
 			world.numAssisting++;
 		}
@@ -374,18 +375,22 @@ public class Person extends TrafficAgent {
 	
 	public void beginEvacuating() {
 		
-		if(evacuatingTime < 0) {
+/*		if(evacuatingTime < 0) {
 			evacuatingTime = world.schedule.getTime();
 			world.numAttemptingEvac++;
 		}
+*/
+		if(this.evacuationRecord == null)
+			this.evacuationRecord = "START:" + (int)world.schedule.getTime();
 
 		if(world.tsunami) {
 			setActivityNode(world.behaviourFramework.evacuatingNode);
 		}
+		
 		else if(!this.myHousehold.inHazardZone){
 
-			if(evacuatingTime < 0)
-				evacuatingTime = world.schedule.getTime(); // record when we started, at least
+//			if(evacuatingTime < 0)
+//				evacuatingTime = world.schedule.getTime(); // record when we started, at least
 			
 			setActivityNode(world.behaviourFramework.travelToHomeShelteringNode);
 			headFor(myHousehold.home);
@@ -731,7 +736,8 @@ public class Person extends TrafficAgent {
 
 			@Override
 			public void step(SimState arg0) {
-				holder.geometry = (new GeometryFactory()).createPoint(entryPoint.geometry.getCoordinate());
+				Coordinate entryCoordinate = entryPoint.geometry.getCoordinate();
+				holder.geometry = (new GeometryFactory()).createPoint(new Coordinate(entryCoordinate.x, entryCoordinate.y));
 				space.addGeometry(holder);
 				world.schedule.scheduleOnce(time + 1, holder);
 			}
@@ -743,20 +749,21 @@ public class Person extends TrafficAgent {
 	// GETTERS AND SETTERS
 	//
 	
-	public boolean evacuatingCompleted(){ return evacuatingCompleted; }
+	public boolean evacuatingCompleted() { return this.evacuationRecord.endsWith("DONE"); }
+	//public boolean evacuatingCompleted(){ return evacuatingCompleted; }
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
 //	public int getEvacuating(){ return this.evacuating; }
 	
-	public boolean isEvacuating() { return !this.evacuatingCompleted && this.evacuatingTime > 0;
+	//public boolean isEvacuating() { return !this.evacuatingCompleted && this.evacuatingTime > 0;
 			/*!
 			(this.currentAction == world.behaviourFramework.homeNode || 
 			this.currentAction == world.behaviourFramework.travelToHomeNode ||
 			this.currentAction == world.behaviourFramework.workNode ||
-			this.currentAction == world.behaviourFramework.travelToWorkNode);*/}
+			this.currentAction == world.behaviourFramework.travelToWorkNode);*/
 	
-	public double getEvacuatingTime(){ return evacuatingTime; }	
+//	public double getEvacuatingTime(){ return evacuatingTime; }	
 	public Household getHousehold() { return this.myHousehold;}
 	
 	public void setActivityNode(BehaviourNode bn){ this.currentAction = bn;}
@@ -773,5 +780,6 @@ public class Person extends TrafficAgent {
 	
 	public boolean hasPath() { return path != null; }
 	public GeoNode getNode() { return node; }
-	public void tempUpdateLoc(Coordinate c) { updateLoc(c); } // TODO remove
+	public String getEvacuationRecord() { return this.evacuationRecord; }
+
 }

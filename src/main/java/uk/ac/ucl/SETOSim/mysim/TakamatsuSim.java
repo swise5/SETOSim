@@ -217,7 +217,7 @@ public class TakamatsuSim extends SimState {
 	/////////////// Parameters ///////////////////////////////////////////
 	
 	long mySeed = 0;
-	boolean exportHeatmap = false; // export the heatmap or no?
+	boolean exportHeatmap = true; // export the heatmap or no?
 	public boolean verbose = false;
 	public boolean ageSpecificSpeeds = false;
 	public double likelihoodOfOwningVehicle = .6;
@@ -470,7 +470,9 @@ public class TakamatsuSim extends SimState {
 		int numRoadNodes = roadNodes.size();
 		int numPeople = agents.size();
 		
-		double proportionOfCommuters = percSample * numCommutersOutbound / numPeople;
+		// num people is trueNum * (1 - sampleSize), right? so we should adjust similarly
+		// perc commuters is thus equal to trueNumCommuters * (1 - sampleSize) / numPeople
+		double proportionOfCommuters = numCommutersOutbound * (1 - this.percSample)/ numPeople;
 		
 		for(Person p: agents){
 			
@@ -514,7 +516,8 @@ public class TakamatsuSim extends SimState {
 			}
 		}
 		
-/*		double numberOfInboundCommuters = percSample * numCommutersInbound;
+
+		double numberOfInboundCommuters = percSample * numCommutersInbound;
 		for(int i = 0; i < numberOfInboundCommuters; i++) {
 		
 			// where do they work and how will they get there?
@@ -528,10 +531,10 @@ public class TakamatsuSim extends SimState {
 			agents.add(p);
 			
 			// schedule arrival during morning rush hour
-			double arrivalTime = 8.5 * this.ticks_per_hour + random.nextGaussian() * this.ticks_per_hour; 
+			double arrivalTime = Math.ceil(8.5 * this.ticks_per_hour + random.nextGaussian() * this.ticks_per_hour); 
 			p.scheduleArrival(arrivalStation, arrivalTime);
 		}
-		*/
+		
 	}
 	
 	public void setupPersonRoadKnowledge() {
@@ -780,7 +783,8 @@ public class TakamatsuSim extends SimState {
 				record_heatmap = new BufferedWriter(new FileWriter(heatmapFilename));
 				System.out.println(heatmapFilename);
 				IntGrid2D myHeatmap = ((IntGrid2D) this.heatmap.getGrid());
-
+				
+				/*
 				// write a header
 				record_heatmap.write(myHeatmap.getWidth() + "\t" + myHeatmap.getHeight() + "\t" + (int)schedule.getTime() + "\n");
 				for(Shelter s: shelterReport.keySet()){
@@ -801,6 +805,7 @@ public class TakamatsuSim extends SimState {
 				}
 				
 				record_heatmap.write("\n\n\n");
+				*/
 				for(String s: roadUsageRecord.keySet()){
 					record_heatmap.write(s + "\t" + roadUsageRecord.get(s) + "\n");
 				}
@@ -822,12 +827,12 @@ public class TakamatsuSim extends SimState {
 			record_info.write(this.numAttemptedEvacsOverTime.toString() + "\n");
 			record_info.write(this.numAssistingOverTime.toString());
 */
-			record_info.write("ID\tage\tstatus\tevacuatingTime\tflooded\tx_home\ty_home\tx_loc\ty_loc\n");//\tdependent\tdependentOf\tturnedAway\n");
+			record_info.write("ID\tage\tstatus\tevacuatingRecord\tflooded\tx_home\ty_home\tx_loc\ty_loc\n");//\tdependent\tdependentOf\tturnedAway\n");
 			for(Person a: agents){
 
-				if(a.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
+				if(a.getEvacuationRecord() == null)//.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
 				{
-					if(! a.getHousehold().inHazardZone()) // if they're safe, don't export them; otherwise DO include them!
+					//if(! a.getHousehold().inHazardZone()) // if they're safe, don't export them; otherwise DO include them!
 						continue;					
 				}
 				
@@ -853,13 +858,13 @@ public class TakamatsuSim extends SimState {
 				if(a.dependentOf != null)
 					dependentOf = a.dependentOf.getMyID();
 			*/	
-				double myTime = a.getEvacuatingTime();
+			/*	double myTime = a.getEvacuatingTime();
 				if(!a.getActivityNode().isEndpoint()) {
 					myTime = worldTime - a.getEvacuatingTime();
 				}
 				System.out.print(myTime + "\t");
-				
-				record_info.write(myID + "\t" +  a.getAge() + "\t" + status + "\t" + a.getEvacuatingTime() + "\t"
+			*/	
+				record_info.write(myID + "\t" +  a.getAge() + "\t" + status + "\t" + a.getEvacuationRecord() + "\t"
 						+ inWater + "\t" + homeCoord.x + "\t" + homeCoord.y + 
 						"\t" + locCoord.x + "\t" + locCoord.y //+ "\t" + dependent + "\t" + dependentOf + "\t" + a.turnedAwayFromShelterCount
 						+ "\n");//a.getHistory() + "\n");
