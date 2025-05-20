@@ -22,6 +22,9 @@ public class WayfindingTests {
 	public static String testingDirectory = "data/testing/";
 	
 	@Test
+	/**
+	 * Confirm that the Person object finds the shortest route between two locations.
+	 */
 	public void PersonFindsShortestRoute() {
 		// SETUP //////////////////////////////////////////
 		
@@ -30,8 +33,8 @@ public class WayfindingTests {
 		world.pathfinder = new AStar();
 		
 		// generate the person at one of the nodes and have them create a reasonable path
-		Coordinate startPoint = new Coordinate(0, 0);//693959.0,3873915.0); // southmost point
-		Coordinate endPoint = new Coordinate(10, 0);//694332.0,3874762.0); // northmost point
+		Coordinate startPoint = new Coordinate(0, 0); // southmost point
+		Coordinate endPoint = new Coordinate(10, 0);  // northmost point
 
 		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
 		
@@ -45,16 +48,23 @@ public class WayfindingTests {
 		
 		// is it the *correct* path?
 		ArrayList <Edge> myPath = p.getPath();
-		String [] roadIds = new String [] {"2", "1", "0"};//"128714635", "461450875", "128710327", "128712625", "128709855", "128712803", "128720064"};
-		assertEquals(p.getPath().size(), roadIds.length);
+		String [] roadIds = new String [] {"2", "1", "0"}; // road segment IDs for dummy data
+		assertEquals(p.getPath().size(), roadIds.length);  // this must match if they match
 		
-		for(int i = 0; i < p.getPath().size(); i++) { // confirm segment by segment
+		// confirm segment by segment
+		for(int i = 0; i < p.getPath().size(); i++) {
+			// pull out the ID of the next segment in the path
 			String roadName = ((MasonGeometry)myPath.get(i).info).getStringAttribute("osm_id"); 
-			assertEquals(roadName, roadIds[i]);
+			assertEquals(roadName, roadIds[i]); // check that it's correct
 		}
 	}
 	
 	@Test
+	/**
+	 * Confirm that a Person who tries to use an inaccessible road segment fails in the attempt. Likewise,
+	 * ensure that the mere existence of a blocked path doesn't keep the Person from reaching a different,
+	 * accessible location.
+	 */
 	public void BlockedRouteIsInaccessible() {
 		// SETUP //////////////////////////////////////////
 		
@@ -64,37 +74,38 @@ public class WayfindingTests {
 		
 		// generate the person at one of the nodes and have them create a reasonable path
 		Coordinate startPoint = new Coordinate(0, 0);
-		Coordinate endPoint = new Coordinate(-5, 10);
+		Coordinate endPoint_inaccessible = new Coordinate(-5, 10);
+		Coordinate endPoint_accessible = new Coordinate(10, 0);
 
 		// create the person
 		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
 		
 		// close the roads
-		for(Object o: world.roadClosures.get(1))
+		for(Object o: world.roadClosures.get(1)) // take all roads where the depth is set to 1 (only road 3, 'r3')
 			((MasonGeometry) o).addAttribute("open", "CLOSED"); // close any relevant roads
 		
 		// SUT //////////////////////////////////////////
-		p.headFor(endPoint);
+		p.headFor(endPoint_inaccessible);
+		boolean hasPathToInaccessibleEndpoint = p.hasPath();
+		
+		p.headFor(endPoint_accessible);
 		
 		// TESTING //////////////////////////////////////////
 		
-		// did it find a path?
+		// did it find a path to the inaccessible point?
+		assertFalse(hasPathToInaccessibleEndpoint);
+		
+		// did it find a path to the accessible point?
 		assertTrue(p.hasPath());
-		
-		// is it the *correct* path?
-		ArrayList <Edge> myPath = p.getPath();
-		String [] roadIds = new String [] {"3"};
-		assertEquals(p.getPath().size(), roadIds.length);
-		for(int i = 0; i < p.getPath().size(); i++) { // confirm segment by segment
-			String roadName = ((MasonGeometry)myPath.get(i).info).getStringAttribute("osm_id"); 
-			assertEquals(roadName, roadIds[i]);
-		}
-		
-		// but it breaks when we try to move, right?
-		assertEquals(p.navigate(world.resolution), -1);
 	}
 	
 	@Test
+	/**
+	 * Ensure that People who attempt to take trains from train stations are able to leave the simulation through
+	 * the station location. After they leave, they should not be physically present within the bounds of the simulation;
+	 * they should be in a "working" status; and their point of entry/egress to the road network should be the station's
+	 * location.
+	 */
 	public void PeopleExitTheMapThroughStations() {
 		// SETUP //////////////////////////////////////////
 		
@@ -117,31 +128,28 @@ public class WayfindingTests {
 		p.setActivityNode(world.behaviourFramework.travelToWorkNode);
 		world.schedule.scheduleOnce(p);
 		
-/*		// force stopper to slow things down
-		Steppable forceStopper = new Steppable() {
-			@Override
-			public void step(SimState arg0) {
-				// literally just to have something in the schedule
-			}
-		};
-		world.schedule.scheduleRepeating(forceStopper, world.ticks_per_hour); // once an hour
-*/		
 		// advance the timer to the morning peak
-		while(world.schedule.getTime() < 8 * world.ticks_per_hour + 10) {
+		while(world.schedule.getTime() < 8 * world.ticks_per_hour) {
 			world.schedule.step(world);
 		}
 		
 		// SUT ///////////////////////////////////////////
-/*		int stillMoving = 1;
+		int stillMoving = 1;
 		while(stillMoving > 0)
 			stillMoving = p.navigate(world.resolution);
-*/
+
 		// TESTING ///////////////////////////////////////////
+		
+		assertEquals(p.getActivityNode(), world.behaviourFramework.workNode); // they are now at work
 		assertEquals(p.geometry.getCoordinate(), world.notInSimulation); // they have left the simulation area
 		assertEquals(p.getNode(), station); // their exit point was the station
 	}
 	
 	@Test
+	/**
+	 * Ensure that during the course of the simulation, new Persons can arrive in the simulation space through
+	 * the stations.
+	 */
 	public void PeopleEnterTheMapThroughStations() {
 		// SETUP //////////////////////////////////////////
 		
@@ -179,6 +187,7 @@ public class WayfindingTests {
 			world.schedule.step(world);
 
 		// TESTING ///////////////////////////////////////////
+		
 		assertTrue(notInSimYet); // doesn't enter until the scheduled time
 		assertTrue(arrivedAtStation); // arrives at the station, at the right time
 		assertEquals(p.geometry.getCoordinate(), homePoint); // arrives at home at the end
