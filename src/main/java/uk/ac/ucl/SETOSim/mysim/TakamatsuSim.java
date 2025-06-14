@@ -118,6 +118,7 @@ public class TakamatsuSim extends SimState {
 	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
 	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	public String stationFilename = "trainStationsWithPassengers.shp";
+	public String evacuationAreasFilename;
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
 /*
@@ -158,8 +159,8 @@ public class TakamatsuSim extends SimState {
 	public GeomVectorField networkLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField networkEdgeLayer = new GeomVectorField(grid_width, grid_height);	
 	public GeomVectorField majorRoadNodesLayer = new GeomVectorField(grid_width, grid_height);
-/*	public GeomVectorField evacuationAreas = new GeomVectorField(grid_width, grid_height);
-	public GeomVectorField fireLayer = new GeomVectorField(grid_width, grid_height);
+	public GeomVectorField evacuationAreas = new GeomVectorField(grid_width, grid_height);
+/*	public GeomVectorField fireLayer = new GeomVectorField(grid_width, grid_height);
 	public ArrayList <GeomVectorField> firePoints = new ArrayList <GeomVectorField>();
 	*/
 	public GeomVectorField stationLayer = new GeomVectorField(grid_width, grid_height);
@@ -265,6 +266,8 @@ public class TakamatsuSim extends SimState {
 			roadAttsToRead.add("full_id"); roadAttsToRead.add("highway");
 			InputCleaning.readInVectorLayer(roadLayer, dirName + roadsFilename, "road network", new Bag());
 			
+			if( evacuationAreasFilename != null )
+				InputCleaning.readInVectorLayer(evacuationAreas, evacuationAreasFilename, "evacuationAreas", new Bag());
 			
 			// if this hasn't been set, set it!
 			if(this.outputPrefix == null)
@@ -282,7 +285,7 @@ public class TakamatsuSim extends SimState {
 			this.grid_width = buildingLayer.fieldWidth;
 			this.grid_height = buildingLayer.fieldHeight;
 
-			//evacuationAreas.setMBR(MBR);
+			evacuationAreas.setMBR(MBR);
 			
 			heatmap = new GeomGridField();
 			heatmap.setMBR(MBR);
@@ -459,6 +462,49 @@ public class TakamatsuSim extends SimState {
 		schedule.scheduleOnce(forecastArrivalTime, floodScheduler);
 		
 	}
+	
+	public void scheduleEvacuationOrders() {
+
+		for(Object o: this.evacuationAreas.getGeometries()) {
+			MasonGeometry mg = (MasonGeometry) o;
+			
+			// extract the evacuation time (formated as 00:00) and turn it into simulation time!!
+			String [] evacTimeStr = mg.getStringAttribute("Time").split(":");
+			int timeAsInt = (int)(Integer.parseInt(evacTimeStr[0]) * this.ticks_per_hour + Integer.parseInt(evacTimeStr[1]));
+			
+			
+			Steppable evacuateAreaScheduler = new Steppable() {
+
+				@Override
+				public void step(SimState arg0) {
+
+					// pull out which households and persons are impacted
+					HashSet <Household> householdsImpacted = new HashSet <Household> ();
+					HashSet <Person> peopleImpacted = new HashSet <Person> ();
+
+					Bag b = householdsLayer.getObjectsWithinDistance(mg, hazardThresholdDistance);
+					householdsImpacted.addAll(b);
+					
+					Bag p = agentsLayer.getObjectsWithinDistance(mg, hazardThresholdDistance);
+					peopleImpacted.addAll(p);
+					
+					for(Household h: householdsImpacted)
+						h.setInHazardZone(true);
+
+					// make sure everyone currenly inundated checks in
+					for(Person a: peopleImpacted) {
+						a.setInundated(true);
+						arg0.schedule.scheduleOnce(a);
+					}
+
+				}
+				
+			};
+			schedule.scheduleOnce(timeAsInt, evacuateAreaScheduler);
+		}
+
+	}
+	
 	
 	public void setupPersons() {
 		ArrayList<Person> myAgents = PersonUtilities.setupHouseholdsFromFile(dirName + agentFilename,

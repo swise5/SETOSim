@@ -15,13 +15,13 @@ public class BulkSim {
 				false};
 
 		
-		boolean [] commuterPolicy = new boolean [] {true, false};
+		boolean [] commuterPolicy = new boolean [] {false};//, true};
 
 		Integer [] timelengths = new Integer [] {60 * 24};
 		
 		int index = 0;
 		for(int j = 0; j < floodwaterFilename.length; j++) {
-			for(int i = 0; i < 15 ; i++) {
+			for(int i = 51; i < 53; i++) {
 				
 				for(boolean commuters: commuterPolicy) {
 					runInstance(i, commuters, //true, k, false, 
@@ -73,10 +73,12 @@ public class BulkSim {
 		}
 		
 		//String moddedFloodFilename = floodFilename.replace("/", "-");
-		String outputFilename = "/Users/swise/Projects/hitomi/data/transit/output/" + commutersCase;
+		String outputFilename = "/Users/swise/Projects/hitomi/data/transit/output/evacZones_" + commutersCase;
+		
 				
 				//ageEnabled + "_" + neighbourPolicy + "_" + designatedHelperPolicy + "_" + moddedFloodFilename + "_";
 		takamatsuModel.outputPrefix = outputFilename;
+		takamatsuModel.evacuationAreasFilename = takamatsuModel.dirName + "evacZonesInMeters.shp";
 		
 //		if(isTsunami)
 //			takamatsuModel.resetForTsunamiScenario();
