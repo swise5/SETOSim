@@ -30,7 +30,7 @@ public class Shelter extends SpatialAgent {
 		
 		this.world = world;
 		geometry = g.geometry;
-		capacity = (int) (g.geometry.getArea() / shelterDensityPerPerson);
+		capacity = 1000000;//(int) (g.geometry.getArea() / shelterDensityPerPerson);
 		vehicleCapacity = numVehicles;
 		
 		Coordinate c;
@@ -75,6 +75,8 @@ public class Shelter extends SpatialAgent {
 	}
 	
 	double getArea(){
+		if(geometry.getDimension() < 2)
+			return 1;
 		return geometry.getArea();
 	}
 	

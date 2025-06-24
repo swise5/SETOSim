@@ -95,33 +95,29 @@ public class TakamatsuGUI extends GUIState {
 		TakamatsuSim world = (TakamatsuSim) state;
 		water.setField(world.waterLayer);
 		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
-		water.setImmutableField(true);
+		//water.setImmutableField(true);
 		
 		roads.setField(world.roadLayer);
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(180,180,180), false));
 		roads.setImmutableField(true);
 		
 		buildings.setField(world.buildingLayer);
-		buildings.setPortrayalForAll(new GeomPortrayal(new Color(210,210,210), true));
+		buildings.setPortrayalForAll(new GeomPortrayal(new Color(210,210,210,90), 15));
 		buildings.setImmutableField(true);
 		
 		agents.setField(world.agentsLayer);
 		agents.setPortrayalForAll( new AttributePolyPortrayal(
 				new SimpleColorMap(TakamatsuSim.speed_pedestrian,TakamatsuSim.speed_vehicle, new Color(255,0,0,50), new Color(0,0,255,100)),
-				"speed", new Color(0,0,0,0), true, 10));
+				"speed", new Color(0,0,0,0), true, 40));
 		
 		shelters.setField(world.shelterLayer);
-		shelters.setPortrayalForAll(new GeomPortrayal(new Color(255,255,0,90), true));
+		shelters.setPortrayalForAll(new GeomPortrayal(new Color(255,255,0), 20));
 		shelters.setImmutableField(true);;
 		
 //		names.setField(world.namesLayer);
 		//names.setPortrayalForAll(new TextPortrayal("name", new Color(50,50,50), 14));
 	//	names.setImmutableField(true);
 		
-/*		network.setField( world.agentsLayer, world.agentSocialNetwork );
-		network.setImmutableField(false);
-		network.setPortrayalForAll(new GeomPortrayal(new Color(200,200,50), false));
-*/
 		heatmap.setField(world.heatmap.getGrid()); 
 		heatmap.setMap(new SimpleColorMap(0, 200, Color.black, Color.red));
 		

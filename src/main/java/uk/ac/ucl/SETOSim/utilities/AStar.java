@@ -55,7 +55,7 @@ public class AStar
 	 * @param network - the network in which the path should exist
 	 * @return either an ordered list of the connecting edges or else null
 	 */
-	public ArrayList<Edge> astarPath(GeoNode start, GeoNode goal, Network network)
+	public ArrayList<Edge> astarPath(GeoNode start, GeoNode goal, Edge [][] adjacencyMatrix, HashSet <Edge> knownEdges)//Network network)
    {
 		// update the overall object
 		searchIndex++;
@@ -79,6 +79,8 @@ public class AStar
         	startNode.reset(searchIndex);
         
         startNode.bestFoundCostToHere = 0;
+        startNode.cameFrom = null;
+        startNode.edgeFrom = null;
         startNode.estimatedCostFromHereToGoal = heuristic(start, goal);
         startNode.estimatedOverallCost = startNode.estimatedCostFromHereToGoal;
 
@@ -118,23 +120,35 @@ public class AStar
             }
             closedSet.add(x);
 
+            Object [] edgeList = adjacencyMatrix[x.node.getIntegerAttribute("indexInNetwork")];
             // check all the edges out from this Node
-           for (Object o : network.getEdges(x.node, null))
+           for (Object o : edgeList)//network.getEdges(x.node, null))
            {
             	Edge l = (Edge) o;
+            	
+            	// we may want to target OR avoid the known set of edges
+            	// if we want to exclusively uknown edges, we want to skip anything NOT in known edges
+            	boolean unknownEdge = knownEdges != null && !knownEdges.contains(l);
+            	if(unknownEdge) 
+            		continue;
+
+            	// otherwise, if the edge is closed, we can't take it
+            	else if(((MasonGeometry)l.getInfo()).getStringAttribute("open").equals("CLOSED"))
+            		continue;
+            	
                 GeoNode next = null;
                 next = (GeoNode) l.getOtherNode(x.node);
                 
                 // get the A* meta information about this Node
                 AStarNodeWrapper nextNode = previouslyFoundNodes.get(next);
+                // make sure we haven't already considered and rejected it
                 if(nextNode == null)
                 	nextNode = addNewNode(next);
-                else if(nextNode.indexOfSearch < searchIndex)
+                else if (closedSet.contains(nextNode)) // it has already been considered
+                    continue;
+                else if(nextNode.indexOfSearch < searchIndex) // it was found on previous runs but not this one
                 	nextNode.reset(searchIndex);
 
-                // make sure we haven't already considered and rejected it
-                if (closedSet.contains(nextNode)) // it has already been considered
-                    continue;
 
                 // otherwise evaluate the cost of this node/edge combo
                 double currentPathCost = x.bestFoundCostToHere + length(l);
@@ -170,8 +184,7 @@ public class AStar
 //        System.out.println("A* Problem: graph has only " + closedSet.size() + " nodes associated with it");
         return null;
     }
-
-
+	
 	/**
 	 * Finds a path between the start and goal nodes within the given network
 	 * 
@@ -180,8 +193,8 @@ public class AStar
 	 * @param network - the network in which the path should exist
 	 * @return either an ordered list of the connecting edges or else null
 	 */
-	public ArrayList<Edge> astarWeightedPath(GeoNode start, GeoNode goal, Network network, String weightedField,
-			HashMap <String, Double> weightings){
+	public ArrayList<Edge> astarWeightedPath(GeoNode start, GeoNode goal, Edge [][] adjacencyMatrix, //, Network network, 
+			String weightedField, HashMap <String, Double> weightings){
 		
 		// update the overall object
 		searchIndex++;
@@ -244,8 +257,10 @@ public class AStar
             }
             closedSet.add(x);
 
+            Object [] edgeList = adjacencyMatrix[x.node.getIntegerAttribute("indexInNetwork")];
+
             // check all the edges out from this Node
-           for (Object o : network.getEdges(x.node, null))
+           for (Object o : edgeList)//network.getEdges(x.node, null))
            {
             	Edge l = (Edge) o;
                 GeoNode next = null;

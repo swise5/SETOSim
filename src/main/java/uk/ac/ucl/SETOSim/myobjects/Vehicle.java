@@ -56,6 +56,12 @@ public class Vehicle extends TrafficAgent {
 		}
 	}
 	
+	public ArrayList <Person> removeAllPassengers(){
+		ArrayList <Person> result = passengers;
+		passengers = new ArrayList <Person> ();
+		return result;
+	}
+	
 /*	void placeOnEdge(Coordinate c){
 		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
 		
@@ -101,4 +107,5 @@ public class Vehicle extends TrafficAgent {
 	
 	public Person getOperator() { return operator; }
 	public ArrayList <Person> getPassengers() { return passengers; }
+	public boolean hasOccupants() { return passengers.size() > 0 || operator != null; }
 }

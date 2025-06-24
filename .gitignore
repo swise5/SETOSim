@@ -7,3 +7,5 @@
 
 # Ignore Gradle build output directory
 build
+
+data/okazakiDemo/evac*
