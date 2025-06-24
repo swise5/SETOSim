@@ -23,3 +23,15 @@ This is the readme file for Okazaki-w010_Trigger.csv
 
  - L1-L2-B_evacuation_order
    - Same as L1-L2_evacuation_order, with an additional evacuation order issued for residents near the Otogawa River.
+
+# Attributions of evacuation order
+ - plan activate
+   - Okazaki city staff prepare for activating evacuation plan (nobody start evacuation)
+ - voluntary
+   - voluntary evacuee start evacuation
+ - dependents
+   - dependents (65 yrs old +) start evacuation
+ - others
+   - other all residents start evacuation
+ - disaster
+   - start inundation
