@@ -1,0 +1,37 @@
+﻿UTC (JST-9),w010-t34_rainfall,w010-t16_rainfall,w010-t34_Iwatsu,w010-t16_Iwatsu,L2-L1_evacuation_order,L1-L2_evacuation_order,L2-L1-B_evacuation_order,L1-L2-B_evacuation_order
+11/10/2019 12:00,0.3,0.1,-0.1,-0.1,,,,
+11/10/2019 13:00,0.4,0.2,-0.1,-0.1,,,,
+11/10/2019 14:00,0.4,0.2,-0.1,-0.1,,,,
+11/10/2019 15:00,0.4,0.2,-0.1,-0.1,,,,
+11/10/2019 16:00,0.4,0.2,-0.1,-0.1,,,,
+11/10/2019 17:00,1.2,0.6,-0.1,-0.1,,,,
+11/10/2019 18:00,3.7,1.7,-0.1,-0.1,,,,
+11/10/2019 19:00,9.2,4.3,-0.1,-0.1,,,,
+11/10/2019 20:00,16.1,7.6,-0.1,-0.1,,,,
+11/10/2019 21:00,29.1,13.7,-0.1,-0.1,,,,
+11/10/2019 22:00,50.8,23.9,0,-0.1,,,,
+11/10/2019 23:00,75.9,35.7,1.1,0,,,,
+12/10/2019 00:00,104.2,49,3,0.5,,plan activate,,plan activate
+12/10/2019 01:00,126.1,59.4,4.2,1.7,,plan activate,,otogawa
+12/10/2019 02:00,156,73.4,5.2,2.3,,plan activate,,otogawa
+12/10/2019 03:00,183.2,86.2,6.1,2.7,plan activate,plan activate,plan activate,otogawa
+12/10/2019 04:00,235.8,110.9,7.1,3.1,voluntary,plan activate,voluntary,otogawa
+12/10/2019 05:00,306,144,7.9,3.7,voluntary,dependents,voluntary,dependents
+12/10/2019 06:00,384.8,181.1,9.3,4.7,voluntary,others,otogawa,others
+12/10/2019 07:00,479.6,225.7,11.2,6.3,voluntary,flooding,otogawa,flooding
+12/10/2019 08:00,561.5,264.2,12.5,7.5,dependents,flooding,dependents,flooding
+12/10/2019 09:00,635.9,299.3,13.8,8.7,others,flooding,others,flooding
+12/10/2019 10:00,682.8,321.3,14.5,9.5,flooding,flooding,flooding,flooding
+12/10/2019 11:00,699.7,329.3,14.7,9.8,flooding,flooding,flooding,flooding
+12/10/2019 12:00,703.2,330.9,14.4,9.7,flooding,flooding,flooding,flooding
+12/10/2019 13:00,703.5,331.1,13.5,9.2,flooding,flooding,flooding,flooding
+12/10/2019 14:00,703.9,331.2,12.3,8.5,flooding,flooding,flooding,flooding
+12/10/2019 15:00,704,331.3,10.9,7.5,flooding,flooding,flooding,flooding
+12/10/2019 16:00,704,331.3,9.3,6.4,flooding,flooding,flooding,flooding
+12/10/2019 17:00,704,331.3,7.6,5.2,flooding,flooding,flooding,flooding
+12/10/2019 18:00,704,331.3,6,4.2,flooding,flooding,flooding,flooding
+12/10/2019 19:00,704,331.3,4.7,3.2,flooding,flooding,flooding,flooding
+12/10/2019 20:00,704,331.3,3.5,2.4,flooding,flooding,flooding,flooding
+12/10/2019 21:00,704,331.3,2.6,1.7,flooding,flooding,flooding,flooding
+12/10/2019 22:00,704,331.3,1.8,1.2,flooding,flooding,flooding,flooding
+12/10/2019 23:00,704,331.3,1.2,0.9,flooding,flooding,flooding,flooding
