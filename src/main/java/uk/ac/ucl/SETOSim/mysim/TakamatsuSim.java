@@ -99,7 +99,7 @@ public class TakamatsuSim extends SimState {
 	public static int forecastingWidthParam = 720;//1440; // in ticks
 	
 	
-	public double percSample = .90;// percent TO OMIT
+	public double percSample = .95;// percent TO OMIT
 	public int numCommutersOutbound = 21331; // TODO this is a hack for Okazaki demo
 	public int numCommutersInbound = 16458;
 
@@ -110,12 +110,12 @@ public class TakamatsuSim extends SimState {
 	
 	
 	public static String communicatorFilename = "empty.txt";
-	public static String agentFilename = "dummyPop.txt";
+	public static String agentFilename = "synthPop_testing.txt";//"dummyPop.txt";
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
 	public String floodedFilename = "simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
 	public String waterFilename = "waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
 	public String sheltersFilename = "shelters.shp";//"bushfireWodenShelter.shp";//"sheltersByHandWithEntrances.shp";//"defaultRitsurinFiles/sheltersUnion.shp";
-	public String buildingsFilename = "buildings.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
+	public String buildingsFilename = "buildings10m.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
 	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	public String stationFilename = "trainStationsWithPassengers.shp";
 	public String evacuationAreasFilename;
@@ -138,7 +138,7 @@ public class TakamatsuSim extends SimState {
 */
 	// EXPORTS
 	
-	BufferedWriter record_speeds, record_sentiment, record_heatmap;
+	BufferedWriter record_shelters, record_heatmap;
 	public BufferedWriter record_info;
 	
 	public String outputPrefix = null;
@@ -743,14 +743,17 @@ public class TakamatsuSim extends SimState {
 		
 		GeomVectorField shelterRaw = new GeomVectorField(grid_width, grid_height);
 		Bag shelterAtts = new Bag();
-		shelterAtts.add("parkingNum"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY");
-		InputCleaning.readInVectorLayer(shelterRaw, dirName + sheltersFilename, "shelters", shelterAtts);
+		shelterAtts.add("parkingcap"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY"); shelterAtts.add("Name");
+		InputCleaning.readInVectorLayer(shelterRaw, //dirName + 
+				sheltersFilename, "shelters", shelterAtts);
 		
 		for(Object o: shelterRaw.getGeometries()){
 			MasonGeometry shelter = (MasonGeometry)o;
-			int numParkingSpaces = Integer.MAX_VALUE;
-			if(shelter.hasAttribute("parkingNum")) numParkingSpaces = (int) shelter.getIntegerAttribute("parkingNum");
-			Shelter myShelter = new Shelter(shelter, numParkingSpaces, this);
+			int numPeople = 100, numParkingSpaces = 10;
+			if(shelter.hasAttribute("capacity")) numPeople = (int) shelter.getIntegerAttribute("capacity");
+			if(shelter.hasAttribute("parkingcap")) numParkingSpaces = (int) shelter.getIntegerAttribute("parkingcap");
+			Shelter myShelter = new Shelter(shelter, numPeople, numParkingSpaces, this);
+			myShelter.addStringAttribute("name", shelter.getStringAttribute("Name"));
 			shelterLayer.addGeometry(myShelter);
 		}
 
@@ -919,7 +922,18 @@ public class TakamatsuSim extends SimState {
 			}
 
 			this.record_info.close();
+			
+			
+			// SAVE ALL AGENT INFO
+			String myShelterOutFile = outputPrefix + this.seed() + "_SHELTERS.txt";
+			System.out.println("writing out to " + myShelterOutFile);
+			record_info = new BufferedWriter(new FileWriter(myShelterOutFile));
+			for(Entry<Shelter, ArrayList<Integer>> s: shelterReport.entrySet()) {
+				record_info.write(s.getKey().getStringAttribute("name") + "\t" + s.getValue().toString() + "\n");
+			}
 
+
+			this.record_info.close();
 		} catch (IOException e){
 			e.printStackTrace();
 		}

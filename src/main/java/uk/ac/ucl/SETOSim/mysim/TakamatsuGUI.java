@@ -73,6 +73,7 @@ public class TakamatsuGUI extends GUIState {
 		//sim.resetForTsunamiScenario();
 		sim.evacuationPolicy_designatedPerson = false;
 		sim.evacuationPolicy_neighbours = false;
+		sim.sheltersFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp";
 		super.start();
 
 		// set up portrayals
@@ -214,6 +215,10 @@ public class TakamatsuGUI extends GUIState {
 		try {
 			TakamatsuSim lb = new TakamatsuSim(12345);//System.currentTimeMillis());
 			gui = new TakamatsuGUI(lb);
+			lb.numCommutersInbound = 0;
+			lb.numCommutersOutbound = 0;
+			lb.evacuationAreasFilename = lb.dirName + "evacZonesInMeters.shp";
+
 		} catch (Exception ex){
 			System.out.println(ex.getStackTrace());
 		}
