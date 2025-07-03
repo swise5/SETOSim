@@ -24,13 +24,13 @@ public class Shelter extends SpatialAgent {
 	
 	ArrayList <Person> currentlyPresent = new ArrayList <Person> ();
 	
-	public Shelter(MasonGeometry g, TakamatsuSim world){ this(g, 0, world); }
-	public Shelter(MasonGeometry g, int numVehicles, TakamatsuSim world) {
+	public Shelter(MasonGeometry g, TakamatsuSim world){ this(g, 10, 0, world); }
+	public Shelter(MasonGeometry g, int numPeople, int numVehicles, TakamatsuSim world) {
 		super(g.geometry.getCoordinate());
 		
 		this.world = world;
 		geometry = g.geometry;
-		capacity = 1000000;//(int) (g.geometry.getArea() / shelterDensityPerPerson);
+		capacity = numPeople;//(int) (g.geometry.getArea() / shelterDensityPerPerson);
 		vehicleCapacity = numVehicles;
 		
 		Coordinate c;

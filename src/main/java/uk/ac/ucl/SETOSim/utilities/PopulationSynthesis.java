@@ -46,15 +46,15 @@ public class PopulationSynthesis {
 	
 	String dirName = "/Users/swise/workspace/takamatsu/data/okazakiDemo/";
 
-	String demoFilename = "elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
-	String roadsFilename = "roads.shp";//"bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String demoFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/02_Population/pop_census2020_okazaki.shp";//"elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
+	String roadsFilename = "simpleRoads.shp";//"bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
 	String weightedRoadAttribute = "highway";//"HIERARCHY";
-	String [] roadTypesToBuildHouses = {"residential"};//{"RESIDENTIAL", "house"};
+	String [] roadTypesToBuildHouses = {"!motorway"};//{"RESIDENTIAL", "house"};
 	
 	
 	String buildingsFilename = "";
 
-	String householdsFilename = "KagawaHouseholdsBasic.tsv";
+	String householdsFilename = "";//"OkazakiHouseholdsBasic.tsv";
 
 	// Canberra version
 	//int targetNumIndividualsToGenerate = 466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
@@ -71,9 +71,9 @@ public class PopulationSynthesis {
 	GeometryFactory gf = new GeometryFactory();
 	
 	public static double resolution = 5;// // the granularity of the simulation
-	public static double distanceToRoads = 15; // m, based on mucking around wiht it
+	public static double distanceToRoads = 15; // m, based on mucking around with it
 	
-	public static double numYearsPerBin = 100;//5.;
+	public static double numYearsPerBin = 5.;
 	public static int maxAge = 100;
 
 	public static int familyWeight = 10;
@@ -177,14 +177,61 @@ public class PopulationSynthesis {
 		// Generate the households
 		//
 		
-		// generate the individuals and assemble them into households
-		ArrayList <Agent> allIndividuals  = generateIndividuals();
-		if (allIndividuals == null)
-			return;
+		if(demoFilename.endsWith(".shp"))
+		{
+			// process for each unit of geometry
+			GeomVectorField populationGrid = readInVectors(demoFilename);
+			ArrayList<ArrayList<Agent>> allHouseholdsInRegion = new ArrayList<ArrayList<Agent>>(); 
+			for(Object o: populationGrid.getGeometries()) {
+				
+				MasonGeometry myDistrict = (MasonGeometry) o;
+				
+				double [] ageSex = getAgeSexConstraintsFromShapefile(myDistrict);
+				ArrayList <Agent> allIndividuals = generateIndividualsFromShapefile(ageSex);
+				
+				if(allIndividuals == null) continue;
+				ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholdsFromShapefiles(myDistrict, allIndividuals);
+				
+				// try to find houses within the district
+				candidateHouses = new HashSet <MasonGeometry> (buildings.getCoveredObjects(myDistrict));
+				
+				// ...or within 100 meters of it
+				if(candidateHouses.size() == 0)
+					candidateHouses = new HashSet <MasonGeometry> (buildings.getObjectsWithinDistance(myDistrict, 100));
+				
+				// ...but if there's nothing, there's nothing - report the problem
+				if(candidateHouses.size() == 0) {
+					System.out.println("WARNING: omitting " + allHouseholds.size() + " HOUSEHOLDS for lack of housing in area " + myDistrict.toString());
+					continue;
+				}
+				
+				assignHouseholdsToHouses(allHouseholds, candidateHouses);
+				
+				allHouseholdsInRegion.addAll(allHouseholds);
+			}
 			
-		ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals);
+			writeOutHouseholds(allHouseholdsInRegion);
+		}
+		else {
+			// generate the individuals and assemble them into households
+			ArrayList <Agent> allIndividuals  = generateIndividuals();
+			if (allIndividuals == null)
+				return;
+				
+			ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals);
+				
+			assignHouseholdsToHouses(allHouseholds, candidateHouses);
 			
-		assignHouseholdsToHouses(allHouseholds, candidateHouses);
+			allIndividuals = new ArrayList <Agent> ();
+			for(ArrayList <Agent> household: allHouseholds){
+				allIndividuals.addAll(household);
+			}
+
+			// write out the households
+			writeOutHouseholds(allHouseholds);
+
+		}
+
 /* TODO add meeeeee
 		ArrayList <Agent> noAssignedHome = new ArrayList <Agent> ();
 		for(Agent a: individuals){
@@ -204,14 +251,14 @@ public class PopulationSynthesis {
 	*/			
 //		ArrayList <Agent> socialMediaUsers = getSocialMediaUsers(allIndividuals);
 
-		System.out.println("Finished with picking social media users");
+		//System.out.println("Finished with picking social media users");
 
 		//
 		// Assign individuals to workplaces
 		//
 
 		//generateWorkplaces(demo, roadNetwork, tractToCountyMapping, householdsPerCounty);
-		System.out.println("Finished with generating workplaces");
+		//System.out.println("Finished with generating workplaces");
 		
 		System.gc();
 		
@@ -219,24 +266,12 @@ public class PopulationSynthesis {
 		// Create friendship-based social ties
 		//
 
-		allIndividuals = new ArrayList <Agent> ();
-		for(ArrayList <Agent> household: allHouseholds){
-			allIndividuals.addAll(household);
-		}
 		
 		//sociallyCluster(allIndividuals, acquaintenceWeight);
-
-		System.out.println("Finished with social clustering");
+		//System.out.println("Finished with social clustering");
+		//sociallyMediaCluster(socialMediaUsers, acquaintenceWeight, 15);
+		//System.out.println("Finished with social media clustering");
 		
-//		sociallyMediaCluster(socialMediaUsers, acquaintenceWeight, 15);
-
-		System.out.println("Finished with social media clustering");
-		
-		//
-		// Write out the findings
-		//
-
-		writeOutHouseholds(allHouseholds);
 	}
 
 	public void writeOutHouseholds(ArrayList <ArrayList <Agent>> households){
@@ -408,10 +443,10 @@ public class PopulationSynthesis {
 		ArrayList <MasonGeometry> availableHouses = new ArrayList <MasonGeometry> ();
 		availableHouses.addAll(houses);
 		
-		// make sure that we don't have too many houses!
+		// make sure that we don't have too few houses!
 		int numHouses = houses.size();
 		if(numHouses < households.size())
-			System.out.println("ERROR: not enough housing units given the number of households");
+			System.out.print("\tWARNING: number of housing units implies CO-OCCUPANCY");
 		
 		for(ArrayList <Agent> household: households){
 			int myIndex = random.nextInt(numHouses);
@@ -426,6 +461,7 @@ public class PopulationSynthesis {
 		}
 	}
 
+	
 	/**
 	 * Generate the set of workplaces, given the road network, set of nodes in the tract, number of households,
 	 * and the flow of individuals
@@ -661,10 +697,13 @@ public class PopulationSynthesis {
 	
 	public boolean canBuildHousesOn(String type) {
 		for(String s: roadTypesToBuildHouses) {
-			if(s.equals(type)) 
+			boolean excluded = s.startsWith("!");
+			if(excluded && s.contains(type)) 
+				return false;
+			else if(s.equals(type))
 				return true;
 		}
-		return false;
+		return true;
 	}
 	
 	/**
@@ -699,7 +738,10 @@ public class PopulationSynthesis {
 				continue;
 
 			// go through the edges for this node
+			int dummyIndex = -1;
 			for(Object p: roadNetwork.getEdgesOut(node)){
+				dummyIndex++;
+				if(dummyIndex % 1000 == 0) System.out.print(".");
 				
 				// get the associated edges!
 				ListEdge edge = (ListEdge) p;
@@ -723,7 +765,7 @@ public class PopulationSynthesis {
 				LengthIndexedLine segment = new LengthIndexedLine(ls);
 				double endIndex = segment.getEndIndex();
 				
-				double distanceBetweenBuildings = 15;
+				double distanceBetweenBuildings = 10;
 				
 				for(double i = 5; i <= endIndex - 5; i += distanceBetweenBuildings) {
 					MasonGeometry newHouse = new MasonGeometry(gf.createPoint(segment.extractPoint(i)));
@@ -764,12 +806,48 @@ public class PopulationSynthesis {
 				index++;
 			}
 			record_houses.close();
-			
+			System.out.println("\nfinished generating houses");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		return houseCandidates;
+	}
+	
+	double [] getAgeSexConstraintsFromShapefile(MasonGeometry spatialUnit) {
+		
+		double total = spatialUnit.getDoubleAttribute("TotPop"), 
+				totalMales = spatialUnit.getDoubleAttribute("TotPopM"),
+				percMale = totalMales / total;
+		
+		// otherwise let's rock
+		double [] results = new double [(int)(maxAge / numYearsPerBin) * 2 + 2]; // add an extra 2 for the upper limit 
+		// age categories of given size from 0-maxAge years for, currently, 2 sexes (to expand with better data)
+		
+		for(String attName: spatialUnit.getAttributes().keySet()) {
+			if(! attName.startsWith("Pop")) 
+				continue; // ignore anything that's not about population
+			
+			String substr = attName.substring(3, attName.length() - 1); // drop the "Pop" and the final "T"
+			if(substr.endsWith("_")) substr += "" + this.maxAge; // maximum age - should prevent no cap
+			String [] bits = substr.split("_");
+			
+			int minAge = Integer.parseInt(bits[0]), maxAge = Integer.parseInt(bits[1]);
+			int span = maxAge - minAge;
+
+			double numPeopleInAgeRange = spatialUnit.getDoubleAttribute(attName),
+					numMenInRange = numPeopleInAgeRange * percMale,
+					numWomenInRange = numPeopleInAgeRange - numMenInRange;
+
+			for(int i = minAge; i <= maxAge; i++){
+				int bin = (int)Math.floor(i / numYearsPerBin);
+				results[bin] += numMenInRange / span;
+				results[bin + results.length / 2] += numWomenInRange / span;
+			}
+
+		}
+		return results;
+		
 	}
 	
 	double [] getAgeSexConstraints(){
@@ -833,6 +911,40 @@ public class PopulationSynthesis {
 			//e.printStackTrace();
 			return dummyResults;
 		}
+	}
+	
+	ArrayList <Agent> generateIndividualsFromShapefile(double [] ageSexConstraints){
+		
+		ArrayList <Agent> individuals = new ArrayList <Agent> ();
+		
+		// get the total number of individuals in the area
+		double totalPop = getSum(ageSexConstraints);
+		if(totalPop < 1 && this.random.nextDouble() > totalPop) // if there are people, or even the probability of a person, make them!
+			return null;
+		
+		// for every individual in the area, generate a representative agent
+		int bins = ageSexConstraints.length / 2;
+		for(int i = 0; i < totalPop; i++){
+			
+			// generate information about this agent
+			double val = random.nextDouble() * totalPop;
+			int index = getIndex(ageSexConstraints, val);
+			int sex = index / bins;
+			int age = index % bins;
+			
+			// create the agent
+			Agent a = new Agent(age, sex);
+			
+			// record this individual
+			individuals.add(a);
+		}
+		
+		// print out report on the quality of fit
+//		System.out.println("Fit for " + area.getStringAttribute("NAMELSAD10") + ": " + fitIndividuals(individuals, ageSexConstraints));	
+//		System.out.println("HOUSEHOLDS: " + area.getIntegerAttribute("DP0120002") + "\tGROUP QUARTERS: " + area.getIntegerAttribute("DP0120014") + "\tTOTAL: " + totalPop);
+		this.ageSexConstraints = ageSexConstraints;
+		
+		return individuals;
 	}
 	
 	/**
@@ -922,6 +1034,278 @@ public class PopulationSynthesis {
 				//e.printStackTrace();
 			}			
 		}
+	
+	
+	ArrayList <ArrayList<Agent>> generateHouseholdsFromShapefiles(MasonGeometry spatialUnit, ArrayList <Agent> individuals){
+		
+		ArrayList <ArrayList<Agent>> allHouseholds = new ArrayList <ArrayList <Agent>> ();
+		ArrayList <ArrayList<Agent>> familyHouseholds = new ArrayList <ArrayList <Agent>>();
+
+		// GENERATE THE HOUSEHOLDS
+		double numHouseholds = spatialUnit.getDoubleAttribute("TotHhld");
+		double [] householdTypeRatios = {.2, .2, .01, .03, .05, .05, .03, .03, .03, .02, .15, .2};
+		
+		//System.out.println("Generating households...");
+		for(int i = 0; i < numHouseholds; i++){
+			
+			if(i % 100 == 0)
+				System.out.print('.');
+			
+			// if the set of individuals is now empty, no need to keep trying to create households!
+			if(individuals.size() == 0){ 
+				i = Integer.MAX_VALUE;
+				continue;
+			}
+			
+			ArrayList <Agent> household = new ArrayList <Agent> ();
+			Agent a;
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// determine the household type //////////////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////////////////////
+
+			double val = random.nextDouble() * numHouseholds;
+			int index = getIndex(householdTypeRatios, val);
+			
+			// given the type, set up the household
+			int hh1 = -1, hh2 = -1; // 0 for male, 1 for female
+			int numChildren = 0;
+			boolean familyGroup = true;
+			
+			switch (index) {
+			case 0: // couple household
+				hh1 = 0; hh2 = 1;
+				break;
+			case 1: // couple family, OWN CHILDREN
+				hh1 = 0; hh2 = 1;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 2: // single male householder WITH OWN CHILDREN
+				hh1 = 0;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 3: // single female householder WITH OWN CHILDREN
+				hh1 = 1;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 4: // couple household WITH PARENTS
+				hh1 = 1; hh2 = 0;
+				break;
+			case 5: // couple household WITH SINGLE PARENT
+				hh1 = 1; hh2 = 0;
+				break;
+			case 6: // couple household WITH PARENTS AND CHILD(REN)
+				hh1 = 1; hh2 = 0;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 7: // couple household WITH PARENT AND CHILD(REN)
+				hh1 = 1; hh2 = 0;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 8: // couple and other relatives (NOT CHILDREN, PARENTS)
+				hh1 = 1; hh2 = 0;
+				break;
+			case 9: // couple, children, and other relatives (NOT PARENTS)
+				hh1 = 1; hh2 = 0;
+				numChildren = ownChildrenDistribution();
+				break;
+			case 10: // couple, parents, and other relatives (NOT CHILDREN)
+				hh1 = 1; hh2 = 0;
+				break;
+			case 11: // couple, child, parents, and other relatives
+				hh1 = 1; hh2 = 0;
+				break;
+			case 12: // household, siblings only
+				break;
+			case 13: // other relative family
+				break;
+			case 14: // non-related
+				familyGroup = false;
+				break;
+			case 15: // single person
+				hh1 = random.nextInt(2);
+				break;
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// construct the household ///////////////////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////////////////////
+
+			int spouseAge = -1;
+
+			// select the Householder /////////////////////////////////////////////
+
+			int indivIndex = 0; // go through the randomly generated individuals one by one!
+			while(indivIndex < individuals.size() && hh1 >= 0){
+				a = individuals.get(indivIndex);
+				if(a.sex == hh1 && a.age >= Math.floor(18./numYearsPerBin)){ // basic requirements
+
+					// if the householder needs to have children under 18, need to be old enough to have produced a kid!
+					if(numChildren > 0 && a.age < 15./numYearsPerBin){
+						indivIndex++;
+						continue;
+					}
+
+					household.add(a);
+					spouseAge = a.age + (int)(1.5 * random.nextGaussian());	
+					individuals.remove(indivIndex);
+					indivIndex = Integer.MAX_VALUE;
+				}
+				else
+					indivIndex++;
+			}
+			if(hh1 >=0 && indivIndex != Integer.MAX_VALUE){ // it has failed!!
+				continue;
+			}
+
+			// add spouse, if appropriate /////////////////////////////////////////////
+			indivIndex = 0;
+			while(indivIndex < individuals.size() && hh2 >= 0){
+				a = individuals.get(indivIndex);
+				if(a.sex == hh2 && a.age == spouseAge){ // basic requirements						
+					household.add(a);
+					individuals.remove(indivIndex);
+					indivIndex = Integer.MAX_VALUE;
+				}
+				else
+					indivIndex++;
+			}
+
+			// add children, if appropriate /////////////////////////////////////////////
+			if(numChildren > 0){
+
+				// get rough age parameters for the children of the householder and spouse
+				int minAge = (int) (17./numYearsPerBin), maxAge = 0;
+				for(Agent member: household){
+					if(member.age > maxAge) maxAge = member.age;
+					if(member.age < minAge) minAge = member.age;
+				}
+				// children should be younger than the minimum age of a parent minus 15 years (ASSUMPTION)
+				int maxChildAge = minAge - (int)(15 / numYearsPerBin);
+				// children can be born to parents at no older than 50 (ASSUMPTION)
+				int minChildAge = Math.max(0, maxAge - (int)(9 / numYearsPerBin));//10);
+
+				int previousChildAge = -1; // use to try to cluster child ages together
+				int fulfilled = 0;
+				
+				indivIndex = 0;
+				while(indivIndex < individuals.size() && fulfilled < numChildren){
+					a = individuals.get(indivIndex);
+					if(a.age >= minChildAge && a.age <= maxChildAge){ // basic requirements
+
+						// prefer children to be closer in age to one another (normal distribution --> within 5 years, certainly within 10)
+						if(Math.abs(a.age - previousChildAge) > Math.abs(random.nextGaussian())){
+							indivIndex++;
+							continue;							
+						}
+
+						household.add(a);
+						individuals.remove(indivIndex);
+						indivIndex = Integer.MAX_VALUE;
+						fulfilled++;
+						previousChildAge = a.age;
+					}
+					else
+						indivIndex++;
+				}
+
+			}
+
+			// NON-FAMILY HOUSEHOLD: add roommates who are adults //////////////////////
+			if(hh1 == -1 && hh2 == -1 && !familyGroup){
+
+				int numMembers = otherAdultsDistribution();
+				int fulfilled = 0;
+				indivIndex = 0;
+
+				while(indivIndex < individuals.size() && fulfilled < numMembers){
+					a = individuals.get(indivIndex);
+					if(a.age >= Math.floor(4./numYearsPerBin)){ 
+						household.add(a);
+						individuals.remove(indivIndex);
+						indivIndex = Integer.MAX_VALUE;
+						fulfilled++;
+					}
+					else
+						indivIndex++;
+				}
+			}
+
+			if(household.size() > 0){
+				if(familyGroup)
+					familyHouseholds.add(household);
+				else
+					allHouseholds.add(household);
+			}
+			else {
+				i--;
+			}
+
+		}
+
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// allocated unassigned individuals //////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////
+
+		int leftoverIndividualsToAllocate = individuals.size();
+		
+		// try to find a "general", catch-all household to accept the individuals
+		ArrayList<ArrayList<Agent>> householdsAcceptingLeftoverIndividuals = allHouseholds;
+		
+		// if the "general" households can't accept them, try to add them to family households
+		if(allHouseholds.size() <= 0 && familyHouseholds.size() > 0)
+			householdsAcceptingLeftoverIndividuals = familyHouseholds;
+		
+		// if neither of those exists, then it's likely an institution of some sort - so set up
+		// a single household to hold everyone
+		else {
+			ArrayList <Agent> institutionalHousehold = new ArrayList <Agent> ();
+			householdsAcceptingLeftoverIndividuals = new ArrayList <ArrayList <Agent>> ();
+			householdsAcceptingLeftoverIndividuals.add(institutionalHousehold);
+		}
+		
+		int numAcceptingHouseholds = householdsAcceptingLeftoverIndividuals.size();
+		
+		while(leftoverIndividualsToAllocate > 0){
+			Agent member = individuals.remove(random.nextInt(leftoverIndividualsToAllocate));
+			householdsAcceptingLeftoverIndividuals.get(random.nextInt(numAcceptingHouseholds)).add(member);
+			leftoverIndividualsToAllocate--;
+		}
+	
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// set up basic household social networks ////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////
+
+		for(ArrayList <Agent> household: familyHouseholds){
+			int weight = familyWeight;
+			for(int i = 0; i < household.size()-1; i++){				
+				for(int j = i+1; j < household.size(); j++){
+					household.get(i).addContact(household.get(j), weight);
+					household.get(j).addContact(household.get(i), weight);					
+				}
+			}
+		}
+		
+		for(ArrayList <Agent> household: allHouseholds){
+			int weight = friendWeight;
+			for(int i = 0; i < household.size()-1; i++){				
+				for(int j = i+1; j < household.size(); j++){
+					household.get(i).addContact(household.get(j), weight);
+					household.get(j).addContact(household.get(i), weight);					
+				}
+			}			
+		}
+		
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// clean up the structures ///////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////
+
+		allHouseholds.addAll(familyHouseholds); // combine the two sets of household types
+	//	fitOfHouseholds(allHouseholds, familyHouseholds); // report on the fit of households
+		
+		return allHouseholds;
+	}
+	
 	
 	/**
 	 * Generate a set of households based on the provided set of individuals and household parameters
@@ -1671,3 +2055,28 @@ public class PopulationSynthesis {
 		PopulationSynthesis newpop = new PopulationSynthesis(12345);		
 	}
 }
+
+
+
+/**
+
+from qgis.core import QgsProject, NULL
+
+layer = QgsProject.instance().mapLayersByName('POPULATION_Census2020_Okazaki_zoning')[0]
+if not layer.isValid():
+    raise Exception('Layer is not valid')
+
+
+fs = layer.getFeatures()
+idx = range(layer.fields().count())
+
+#convertDict = {}
+#for x in layer.attributeList():
+#    convertDict[x] = {NULL: 0}
+
+
+for feature in fs:
+    attr_map = {i: 0 for i in idx if feature[i] == NULL}
+    layer.changeAttributeValues(feature.id(), attr_map)
+
+*/
