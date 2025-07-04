@@ -17,7 +17,7 @@ public class SpatialTests {
 	public static TakamatsuSim setupTestingWorld(String testingDirectory, long key) {
 		TakamatsuSim simStub = new TakamatsuSim(key);
 		simStub.startStubForTesting();
-		simStub.dirName = testingDirectory;
+		simStub.params.dirName = testingDirectory;
 		simStub.agentsLayer = new GeomVectorField(10, 10);
 		return simStub;
 	}
@@ -30,7 +30,7 @@ public class SpatialTests {
 		sut.networkLayer = new GeomVectorField();
 		sut.networkEdgeLayer = new GeomVectorField();
 		sut.majorRoadNodesLayer = new GeomVectorField();
-		InputCleaning.readInVectorLayer(sut.roadLayer, testingDirectory + roadFilename, "road network", new Bag());
+		sut.roadLayer = InputCleaning.readInVectorLayer(testingDirectory + roadFilename, sut.params.grid_width, sut.params.grid_height, "road network", new Bag());
 
 		// set up the network
 		sut.setupRoadNetwork();

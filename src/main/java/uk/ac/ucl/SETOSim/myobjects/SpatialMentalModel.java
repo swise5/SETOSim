@@ -3,7 +3,7 @@ package uk.ac.ucl.SETOSim.myobjects;
 import java.util.HashSet;
 
 import sim.field.network.Edge;
-import swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.objects.network.GeoNode;
 
 public class SpatialMentalModel {
 	HashSet knownNodes;

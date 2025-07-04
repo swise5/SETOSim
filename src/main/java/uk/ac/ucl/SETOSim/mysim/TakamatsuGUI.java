@@ -30,11 +30,11 @@ import sim.portrayal.FieldPortrayal2D;
 import sim.util.Bag;
 import sim.util.gui.SimpleColorMap;
 import sim.util.media.chart.TimeSeriesChartGenerator;
-import swise.disasters.Wildfire;
-import swise.visualization.AttributePolyPortrayal;
-import swise.visualization.FilledPolyPortrayal;
-import swise.visualization.GeomNetworkFieldPortrayal;
-//import swise.visualization.TextPortrayal;
+import uk.ac.ucl.swise.disasters.Wildfire;
+import uk.ac.ucl.swise.visualization.AttributePolyPortrayal;
+import uk.ac.ucl.swise.visualization.FilledPolyPortrayal;
+import uk.ac.ucl.swise.visualization.GeomNetworkFieldPortrayal;
+//import uk.ac.ucl.swise.visualization.TextPortrayal;
 
 /**
  * A visualization of the Hotspots simulation.
@@ -70,10 +70,6 @@ public class TakamatsuGUI extends GUIState {
 
 	/** Begins the simulation */
 	public void start() {
-		//sim.resetForTsunamiScenario();
-		sim.evacuationPolicy_designatedPerson = false;
-		sim.evacuationPolicy_neighbours = false;
-		sim.sheltersFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp";
 		super.start();
 
 		// set up portrayals
@@ -108,7 +104,7 @@ public class TakamatsuGUI extends GUIState {
 		
 		agents.setField(world.agentsLayer);
 		agents.setPortrayalForAll( new AttributePolyPortrayal(
-				new SimpleColorMap(TakamatsuSim.speed_pedestrian,TakamatsuSim.speed_vehicle, new Color(255,0,0,50), new Color(0,0,255,100)),
+				new SimpleColorMap(Params.speed_pedestrian,Params.speed_vehicle, new Color(255,0,0,50), new Color(0,0,255,100)),
 				"speed", new Color(0,0,0,0), true, 40));
 		
 		shelters.setField(world.shelterLayer);
@@ -123,7 +119,7 @@ public class TakamatsuGUI extends GUIState {
 		heatmap.setMap(new SimpleColorMap(0, 200, Color.black, Color.red));
 		
 		Dimension screensize = Toolkit.getDefaultToolkit().getScreenSize(); 
-		int width= sim.grid_width; int height = sim.grid_height;
+		int width= sim.params.grid_width; int height = sim.params.grid_height;
 		double scale = 1.;
 		/*if(width > height)
 			scale = (int) Math.min(.9 * screensize.width, sim.grid_width) / sim.grid_width;
@@ -150,7 +146,7 @@ public class TakamatsuGUI extends GUIState {
 		super.init(c);
 
 		// the map visualization
-		display = new Display2D((int)(1.5 * sim.grid_width), (int)(1.5 * sim.grid_height), this);
+		display = new Display2D((int)(1.5 * sim.params.grid_width), (int)(1.5 * sim.params.grid_height), this);
 
 		display.attach(heatmap, "Heatmap", false);
 		display.attach(water, "Water");
@@ -215,9 +211,6 @@ public class TakamatsuGUI extends GUIState {
 		try {
 			TakamatsuSim lb = new TakamatsuSim(12345);//System.currentTimeMillis());
 			gui = new TakamatsuGUI(lb);
-			lb.numCommutersInbound = 0;
-			lb.numCommutersOutbound = 0;
-			lb.evacuationAreasFilename = lb.dirName + "evacZonesInMeters.shp";
 
 		} catch (Exception ex){
 			System.out.println(ex.getStackTrace());

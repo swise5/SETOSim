@@ -9,9 +9,9 @@ import com.vividsolutions.jts.geom.Point;
 
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import sim.util.geo.MasonGeometry;
-import swise.agents.SpatialAgent;
-import swise.objects.RoadNetworkUtilities;
-import swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.agents.SpatialAgent;
+import uk.ac.ucl.swise.objects.RoadNetworkUtilities;
+import uk.ac.ucl.swise.objects.network.GeoNode;
 
 public class Shelter extends SpatialAgent {
 	
@@ -40,9 +40,9 @@ public class Shelter extends SpatialAgent {
 			c = new Coordinate(geometry.getCoordinate());
 		
 		// test to make sure it's close enough to the road network
-		double rez = world.resolution;
+		double rez = world.params.resolution;
 		GeoNode gn = RoadNetworkUtilities.getClosestGeoNode(c, rez, world.networkLayer,world.networkEdgeLayer, world.fa);
-		while(gn == null && rez < world.grid_width){
+		while(gn == null && rez < world.params.grid_width){
 			rez *= 2;
 			gn = RoadNetworkUtilities.getClosestGeoNode(c, rez, world.networkLayer,world.networkEdgeLayer, world.fa);
 		}

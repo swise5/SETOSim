@@ -17,8 +17,8 @@ import sim.io.geo.ArcInfoASCGridImporter;
 import sim.io.geo.ShapeFileImporter;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
-import swise.objects.NetworkUtilities;
-import swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.objects.NetworkUtilities;
+import uk.ac.ucl.swise.objects.network.GeoNode;
 
 public class InputCleaning {
 	
@@ -49,7 +49,8 @@ public class InputCleaning {
 	 * @param layerDescription
 	 * @param attributes - optional: include only the given attributes
 	 */
-	public static synchronized void readInVectorLayer(GeomVectorField layer, String filename, String layerDescription, Bag attributes){
+	public static synchronized GeomVectorField readInVectorLayer(String filename, int width, int height, String layerDescription, Bag attributes){
+		GeomVectorField layer = new GeomVectorField(width, height);
 		try {
 				System.out.print("Reading in " + layerDescription + "from " + filename + "...");
 				File file = new File(filename);
@@ -62,6 +63,7 @@ public class InputCleaning {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		return layer;
 	}
 	
 	/**
@@ -71,10 +73,12 @@ public class InputCleaning {
 	 * @param layerDescription
 	 * @param type
 	 */
-	public static synchronized void readInRasterLayer(GeomGridField layer, String filename, String layerDescription, GridDataType type){
+	public static synchronized GeomGridField readInRasterLayer(String filename, String layerDescription, GridDataType type){
+		GeomGridField layer = new GeomGridField();
 		try {
 				
 				System.out.print("Reading in " + layerDescription + "from " + filename + "...");
+				layer = new GeomGridField();
 				FileInputStream fstream = new FileInputStream(filename);
 				ArcInfoASCGridImporter.read(fstream, type, layer);
 				fstream.close();
@@ -83,6 +87,7 @@ public class InputCleaning {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		return layer;
 	}
 	
 

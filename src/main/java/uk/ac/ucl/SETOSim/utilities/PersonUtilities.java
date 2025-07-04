@@ -23,7 +23,7 @@ import sim.field.geo.GeomVectorField;
 import sim.util.Bag;
 import sim.util.geo.AttributeValue;
 import sim.util.geo.MasonGeometry;
-import swise.objects.PopSynth;
+import uk.ac.ucl.swise.objects.PopSynth;
 
 public class PersonUtilities {
 	
@@ -199,7 +199,7 @@ public class PersonUtilities {
 	 * @param agentsFilename - the file in which the agent records are stored
 	 */
 	public static synchronized ArrayList<Person> setupHouseholdsFromFile(String agentsFilename, GeomVectorField agentLayer, 
-			GeomVectorField householdLayer, TakamatsuSim world){
+			GeomVectorField householdLayer, TakamatsuSim world, double percSample){
 		try {
 			ArrayList<Person> agents = new ArrayList <Person> ();
 			
@@ -228,7 +228,7 @@ public class PersonUtilities {
 			
 			int myIndex  = 0;
 			while ((s = agentData.readLine()) != null) {
-				if(world.random.nextDouble() < world.percSample) // 10% sample 
+				if(world.random.nextDouble() < percSample) // 10% sample 
 					continue; 
 				if(myIndex % 100 == 0)
 					System.out.print(".");

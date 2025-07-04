@@ -13,6 +13,7 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 
+import uk.ac.ucl.SETOSim.mysim.Params;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import sim.engine.SimState;
 import sim.engine.Steppable;
@@ -20,11 +21,11 @@ import sim.field.geo.GeomVectorField;
 import sim.field.network.Edge;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
-import swise.agents.TrafficAgent;
-import swise.behaviours.BehaviourNode;
-import swise.objects.RoadNetworkUtilities;
-import swise.objects.network.GeoNode;
-import swise.objects.network.ListEdge;
+import uk.ac.ucl.swise.agents.TrafficAgent;
+import uk.ac.ucl.swise.behaviours.BehaviourNode;
+import uk.ac.ucl.swise.objects.RoadNetworkUtilities;
+import uk.ac.ucl.swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.objects.network.ListEdge;
 
 public class Person extends TrafficAgent {
 
@@ -90,7 +91,7 @@ public class Person extends TrafficAgent {
 		this.isMovable = true;
 
 		
-		this.promptNeighbourEvacuations = world.evacuationPolicy_neighbours;
+		this.promptNeighbourEvacuations = world.params.evacuationPolicy_neighbours;
 		
 		this.myID = id;		
 		this.age = age;
@@ -99,8 +100,8 @@ public class Person extends TrafficAgent {
 		// other utilities
 		this.world = world;
 		
-		if(!world.leaderSet) {
-			world.setLeader();
+		if(!world.params.leaderSet) {
+			world.params.setLeader();
 			isLeader = true;
 		}
 		
@@ -113,15 +114,15 @@ public class Person extends TrafficAgent {
 		//	this.wayfindingMechanism = 1;
 
 		// establish if the person has a vehicle at their disposal
-		if(world.random.nextDouble() < world.likelihoodOfOwningVehicle) {
+		if(world.random.nextDouble() < world.params.likelihoodOfOwningVehicle) {
 			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world);
 		}
 		
 		// set up the speed based on agent age
-		if((age > 1 && age < 12 ) || !world.ageSpecificSpeeds) // if age is specific OR ages are turned off!
-			this.speed = TakamatsuSim.speed_pedestrian;
+		if((age > 1 && age < 12 ) || !world.params.ageSpecificSpeeds) // if age is specific OR ages are turned off!
+			this.speed = Params.speed_pedestrian;
 		else
-			this.speed = TakamatsuSim.speed_elderlyYoung;
+			this.speed = Params.speed_elderlyYoung;
 		
 		this.addIntegerAttribute("speed", (int)this.speed);
 		
@@ -208,7 +209,7 @@ public class Person extends TrafficAgent {
 	}
 
 	void wander() {
-		int outcome = navigate(world.resolution);
+		int outcome = navigate(world.params.resolution);
 		
 		// if they don't have an activity or destination, just wander around 
 		if((outcome > 0 && finishedPath()) || outcome == -1){
@@ -239,7 +240,7 @@ public class Person extends TrafficAgent {
 			headFor(myLeader.geometry.getCoordinate());
 		}
 		
-		navigate(world.resolution);
+		navigate(world.params.resolution);
 	}
 	
 	SortedMap <Double, GeoNode> myUnexploredNodesByProx = null;
@@ -248,12 +249,12 @@ public class Person extends TrafficAgent {
 		
 		// if we're searching and we have a path already and we can NAVIGATE it, we can stop processing
 		// and save ourselves some time
-		double outcome = navigate(world.resolution);
+		double outcome = navigate(world.params.resolution);
 		if(outcome > -1)
 			return 1;
 		
 		// we may have arrived - in which case, hooray! We can stop searching!
-		else if(target.distance(this.geometry.getCoordinate()) <= world.resolution) {
+		else if(target.distance(this.geometry.getCoordinate()) <= world.params.resolution) {
 			System.out.println("We've arrived!!!");
 			((ListEdge)edge).removeElement(this); // take ourselves off the road
 			return Integer.MAX_VALUE;
@@ -383,11 +384,11 @@ public class Person extends TrafficAgent {
 		if(this.evacuationRecord == null)
 			this.evacuationRecord = "START:" + (int)world.schedule.getTime();
 
-		if(world.tsunami) {
+		if(world.params.tsunami) {
 			setActivityNode(world.behaviourFramework.evacuatingNode);
 		}
 		
-		else if(!this.myHousehold.inHazardZone){
+//		else if(!this.myHousehold.inHazardZone){
 
 //			if(evacuatingTime < 0)
 //				evacuatingTime = world.schedule.getTime(); // record when we started, at least
@@ -398,10 +399,10 @@ public class Person extends TrafficAgent {
 			if(dependentOf != null) // trigger them!
 				dependentOf.beginEvacuatingDependent();
 						
-		}
-		else {
-			setActivityNode(world.behaviourFramework.evacuatingNode);
-		}
+//		}
+//		else {
+//			setActivityNode(world.behaviourFramework.evacuatingNode);
+//		}
 
 		// if appropriate, encourage neighbours to evacuate
 		if(promptNeighbourEvacuations) {
@@ -416,7 +417,7 @@ public class Person extends TrafficAgent {
 	}
 	
 	void promptNeighbours() {
-		Bag n = world.agentsLayer.getObjectsWithinDistance(this, world.neighbourDistance);
+		Bag n = world.agentsLayer.getObjectsWithinDistance(this, world.params.neighbourDistance);
 		int s = n.size();
 		if(s <= 1) return; // no one nearby!
 		Person p = (Person) n.get(world.random.nextInt(s));
@@ -425,13 +426,13 @@ public class Person extends TrafficAgent {
 	}
 	
 	public static double rayleighDistrib(double unif){
-		double x = TakamatsuSim.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
+		double x = Params.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
 		return x;
 	}
 	
 	public double assessRisk(Household target, double time){
 		
-		if(world.tsunami && time > world.forecastArrivalTime)
+		if(world.params.tsunami && time > world.params.forecastArrivalTime)
 			return 10; // definitely at risk, if the earthquake has already happened!
 		else if(this.inundated)
 			return 10;
@@ -475,13 +476,13 @@ public class Person extends TrafficAgent {
 		// weight the journey time
 		journeyTimeEstimate *= distanceEstimationWeighting;
 		if(this.myVehicle != null)
-			journeyTimeEstimate /= TakamatsuSim.speed_vehicle;
+			journeyTimeEstimate /= Params.speed_vehicle;
 		else
 			journeyTimeEstimate /= this.speed;
 		
 		// calculate the risk based on the forecast
-		double risk_forecast = Math.pow(Math.E, -Math.pow(time - journeyTimeEstimate - world.forecastArrivalTime, 2)/
-				(2 * world.forecastingWidthParam));
+		double risk_forecast = Math.pow(Math.E, -Math.pow(time - journeyTimeEstimate - world.params.forecastArrivalTime, 2)/
+				(2 * world.params.forecastingWidthParam));
 		
 		return risk_observed * risk_forecast;
 	}
@@ -518,7 +519,7 @@ public class Person extends TrafficAgent {
 			if(targetStation == null)
 				return MovementOutcome.unrecoverableRoutingFailure;
 
-			if(targetStation.geometry.getCoordinate().distance(world.notInSimulation) < world.resolution)
+			if(targetStation.geometry.getCoordinate().distance(world.notInSimulation) < world.params.resolution)
 				System.out.println("what");
 			
 			// otherwise, try to route through the target station!
@@ -554,7 +555,7 @@ public class Person extends TrafficAgent {
 		// set up goal information
 		targetDestination = world.snapPointToRoadNetwork(place);
 		
-		GeoNode destinationNode = RoadNetworkUtilities.getClosestGeoNode(targetDestination, world.resolution, world.networkLayer, 
+		GeoNode destinationNode = RoadNetworkUtilities.getClosestGeoNode(targetDestination, world.params.resolution, world.networkLayer, 
 				world.networkEdgeLayer, world.fa);//place);
 		if(destinationNode == null){
 			if(world.verbose)
@@ -564,7 +565,7 @@ public class Person extends TrafficAgent {
 
 		// be sure that if the target location is not a node but rather a point along an edge, that
 		// point is recorded
-		if(destinationNode.geometry.getCoordinate().distance(targetDestination) > world.resolution)
+		if(destinationNode.geometry.getCoordinate().distance(targetDestination) > world.params.resolution)
 			goalPoint = targetDestination;
 		else
 			goalPoint = null;
@@ -577,9 +578,9 @@ public class Person extends TrafficAgent {
 		else if(this.wayfindingMechanism == WayfindingType.searching)
 			path = world.pathfinder.astarPath(node, destinationNode, world.roadAdjacencyMatrix, this.mySpatialMentalModel.getAllEdges()); //transportNetwork);
 		else if(this.myVehicle == null)
-			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roadAdjacencyMatrix, world.weightedRoadAttribute, world.typeWeighting_pedestrian);
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roadAdjacencyMatrix, world.params.weightedRoadAttribute, world.params.typeWeighting_pedestrian);
 		else
-			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roadAdjacencyMatrix, world.weightedRoadAttribute, world.typeWeighting_vehicle);
+			path = world.pathfinder.astarWeightedPath(node, destinationNode, world.roadAdjacencyMatrix, world.params.weightedRoadAttribute, world.params.typeWeighting_vehicle);
 
 
 		// if it fails, give up
@@ -610,7 +611,7 @@ public class Person extends TrafficAgent {
 		}
 
 		// reset stuff
-		if(path.size() == 0 && targetDestination.distance(geometry.getCoordinate()) > world.resolution){
+		if(path.size() == 0 && targetDestination.distance(geometry.getCoordinate()) > world.params.resolution){
 			path.add(edge);
 			node = (GeoNode) edge.getOtherNode(node); // because it will look for the other side in the navigation!!! Tricky!!
 		}
@@ -621,7 +622,7 @@ public class Person extends TrafficAgent {
 		// that contains it, the edge that it's on is included in the path
 		if (goalPoint != null) {
 
-			ListEdge myLastEdge = RoadNetworkUtilities.getClosestEdge(goalPoint, world.resolution, 
+			ListEdge myLastEdge = RoadNetworkUtilities.getClosestEdge(goalPoint, world.params.resolution, 
 					world.networkEdgeLayer, world.fa);
 			
 			if(myLastEdge == null){
@@ -638,7 +639,7 @@ public class Person extends TrafficAgent {
 				lastEdge = edge;
 
 			Point goalPointGeometry = world.fa.createPoint(goalPoint);
-			if(!lastEdge.equals(myLastEdge) && ((MasonGeometry)lastEdge.info).geometry.distance(goalPointGeometry) > world.resolution){
+			if(!lastEdge.equals(myLastEdge) && ((MasonGeometry)lastEdge.info).geometry.distance(goalPointGeometry) > world.params.resolution){
 				if(lastEdge.getFrom().equals(myLastEdge.getFrom()) || lastEdge.getFrom().equals(myLastEdge.getTo()) 
 						|| lastEdge.getTo().equals(myLastEdge.getFrom()) || lastEdge.getTo().equals(myLastEdge.getTo()))
 					path.add(0, myLastEdge);
@@ -661,7 +662,7 @@ public class Person extends TrafficAgent {
 	public double estimateTravelTimeTo(Geometry g){ return(g.distance(this.geometry) / speed); }
 
 	int placeOnEdge(Coordinate c){
-		edge = RoadNetworkUtilities.getClosestEdge(c, world.resolution, world.networkEdgeLayer, world.fa);
+		edge = RoadNetworkUtilities.getClosestEdge(c, world.params.resolution, world.networkEdgeLayer, world.fa);
 		
 		if(edge == null){
 			if(world.verbose)

@@ -1,0 +1,8 @@
+agentFilename: synthPop_testing.txt
+roadInundationColumnName: A31b_201
+roadsFilename: /Users/swise/Projects/hitomi/data/OkazakiABM/03_inundation/roads_with_inundation_16hagibis.shp
+floodedFilename: /Users/swise/Projects/hitomi/data/OkazakiABM/03_inundation/roads_with_inundation_16hagibis.shp
+evacuationAreasFilename: /Users/swise/Projects/hitomi/data/OkazakiABM/03_inundation/roads_with_inundation_34hagibis.shp
+compliance: 0.1
+percIgnored: 0.95
+sheltersFilename: /Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp

@@ -1,0 +1,9 @@
+dirName: /mydriadData/
+agentFilename: synthPop_testing.txt
+roadInundationColumnName: A31b_201
+roadsFilename: roads_with_inundation_34hagibis.shp
+floodedFilename: roads_with_inundation_34hagibis.shp
+evacuationAreasFilename: roads_with_inundation_16hagibis.shp
+compliance: 0.1
+percIgnored: 0.50
+sheltersFilename: sheltersWithParking.shp

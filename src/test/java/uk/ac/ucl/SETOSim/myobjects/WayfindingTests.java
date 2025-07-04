@@ -13,7 +13,7 @@ import sim.engine.SimState;
 import sim.engine.Steppable;
 import sim.field.network.Edge;
 import sim.util.geo.MasonGeometry;
-import swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.objects.network.GeoNode;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import uk.ac.ucl.SETOSim.utilities.AStar;
 
@@ -115,7 +115,7 @@ public class WayfindingTests {
 		world.pathfinder = new AStar();
 		
 		// read in the stations file
-		world.stationFilename = "simplisticTrainStations.shp";
+		world.params.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
 
 		// set up the locations involved
@@ -129,14 +129,14 @@ public class WayfindingTests {
 		world.schedule.scheduleOnce(p);
 		
 		// advance the timer to the morning peak
-		while(world.schedule.getTime() < 8 * world.ticks_per_hour) {
+		while(world.schedule.getTime() < 8 * world.params.ticks_per_hour) {
 			world.schedule.step(world);
 		}
 		
 		// SUT ///////////////////////////////////////////
 		int stillMoving = 1;
 		while(stillMoving > 0)
-			stillMoving = p.navigate(world.resolution);
+			stillMoving = p.navigate(world.params.resolution);
 
 		// TESTING ///////////////////////////////////////////
 		
@@ -159,7 +159,7 @@ public class WayfindingTests {
 		world.pathfinder = new AStar();
 		
 		// read in the stations file
-		world.stationFilename = "simplisticTrainStations.shp";
+		world.params.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
 
 		// set up the Person and set them on course to go home from the station
@@ -204,7 +204,7 @@ public class WayfindingTests {
 		world.pathfinder = new AStar(); // set up movement
 		
 		// read in the stations file
-		world.stationFilename = "simplisticTrainStations.shp";
+		world.params.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
 	
 		// create four Persons to test
@@ -226,10 +226,10 @@ public class WayfindingTests {
 		leaver_station2.currentAction = world.behaviourFramework.homeNode;
 
 		// Schedule them all to start doing things
-		arriver_station1.scheduleArrival(world.stations.get(0), 8 * world.ticks_per_hour);
-		arriver_station2.scheduleArrival(world.stations.get(1), 8 * world.ticks_per_hour);
-		world.schedule.scheduleOnce(8 * world.ticks_per_hour + 1, leaver_station1);
-		world.schedule.scheduleOnce(8 * world.ticks_per_hour + 1, leaver_station2);
+		arriver_station1.scheduleArrival(world.stations.get(0), 8 * world.params.ticks_per_hour);
+		arriver_station2.scheduleArrival(world.stations.get(1), 8 * world.params.ticks_per_hour);
+		world.schedule.scheduleOnce(8 * world.params.ticks_per_hour + 1, leaver_station1);
+		world.schedule.scheduleOnce(8 * world.params.ticks_per_hour + 1, leaver_station2);
 		
 		// holders
 		boolean a_s1_arrived = false, a_s2_arrived = false;
@@ -242,16 +242,16 @@ public class WayfindingTests {
 				// literally just to have something in the schedule
 			}
 		};
-		world.schedule.scheduleRepeating(forceStopper, world.ticks_per_hour); // once an hour
+		world.schedule.scheduleRepeating(forceStopper, world.params.ticks_per_hour); // once an hour
 		
 		// advance the timer to the morning peak
-		while(world.schedule.getTime() < 8 * world.ticks_per_hour - 1) {
+		while(world.schedule.getTime() < 8 * world.params.ticks_per_hour - 1) {
 			world.schedule.step(world);
 		}	
 		
 		// SUT ////////////////////////////////////////////
 		
-		double maxTime = 8 * world.ticks_per_hour + 10;
+		double maxTime = 8 * world.params.ticks_per_hour + 10;
 		while(world.schedule.getTime() < maxTime) {	
 			// arrivers at their stations?
 			if(arriver_station1.geometry.getCoordinate().equals(new Coordinate(-5, 10)))
@@ -304,11 +304,11 @@ public class WayfindingTests {
 		world.pathfinder = new AStar(); // set up movement
 		
 		// read in the stations file
-		world.stationFilename = "simplisticTrainStations.shp";
+		world.params.stationFilename = "simplisticTrainStations.shp";
 		world.setupStations();
 		
 		// set up the shelters
-		world.sheltersFilename = "simplisticShelters.shp";
+		world.params.sheltersFilename = "simplisticShelters.shp";
 		world.setupShelters();
 	
 		// shut down the stations - people are arriving, but cannot leave through them
@@ -328,7 +328,7 @@ public class WayfindingTests {
 		//commuter_travellingToWork.currentAction = world.behaviourFramework.travelToWorkNode;
 
 		// Schedule them all to start doing things
-		commuter_travellingToHome.scheduleArrival(world.stations.get(0), 8 * world.ticks_per_hour);
+		commuter_travellingToHome.scheduleArrival(world.stations.get(0), 8 * world.params.ticks_per_hour);
 		//commuter_travellingToWork.scheduleArrival(world.stations.get(1), 8 * world.ticks_per_hour);
 		
 		// holders
@@ -342,16 +342,16 @@ public class WayfindingTests {
 				// literally just to have something in the schedule
 			}
 		};
-		world.schedule.scheduleRepeating(forceStopper, world.ticks_per_hour); // once an hour
+		world.schedule.scheduleRepeating(forceStopper, world.params.ticks_per_hour); // once an hour
 		
 		// advance the timer to the morning peak
-		while(world.schedule.getTime() < 8 * world.ticks_per_hour - 1) {
+		while(world.schedule.getTime() < 8 * world.params.ticks_per_hour - 1) {
 			world.schedule.step(world);
 		}	
 		
 		// SUT ////////////////////////////////////////////
 		
-		double maxTime = 8 * world.ticks_per_hour + 10;
+		double maxTime = 8 * world.params.ticks_per_hour + 10;
 		while(world.schedule.getTime() < maxTime) {	
 		
 			world.schedule.step(world);

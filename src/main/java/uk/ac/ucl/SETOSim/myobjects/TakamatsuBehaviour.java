@@ -1,15 +1,16 @@
 package uk.ac.ucl.SETOSim.myobjects;
 
 import uk.ac.ucl.SETOSim.myobjects.Person.MovementOutcome;
+import uk.ac.ucl.SETOSim.mysim.Params;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
 import sim.engine.Steppable;
-import swise.behaviours.*;
-import swise.objects.network.GeoNode;
+import uk.ac.ucl.swise.behaviours.*;
+import uk.ac.ucl.swise.objects.network.GeoNode;
 
-public class TakamatsuBehaviour extends BehaviourFramework {
+public class TakamatsuBehaviour implements BehaviourFramework {
 	
 	TakamatsuSim world;
 		
@@ -39,7 +40,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					return Double.MAX_VALUE; // not going anywhere if dependent on others to leave house!
 				
 				// based on the time, go out to work or to stores
-				double currentHour = (time % world.ticks_per_day) / world.ticks_per_hour;
+				double currentHour = (time % Params.ticks_per_day) / Params.ticks_per_hour;
 				if(currentHour >= 8. && currentHour <= 16.){
 					
 					if(p.work != null){
@@ -56,11 +57,12 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 							return 1;
 						}
 						
+						//System.out.print("h");
 						return 1;
 					}
 					else {
 						p.removeFromEdge();
-						return world.ticks_per_day;
+						return Params.ticks_per_day;
 					}
 				}
 				
@@ -68,7 +70,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				double delta = 8. - currentHour;
 				if(delta < 0) 	// it might be the end of the day - so wait until tomorrow.
 					delta += 24; 
-				return delta * world.ticks_per_hour; // don't active again until 8am!
+				return delta * Params.ticks_per_hour; // don't active again until 8am!
 			}
 
 		};
@@ -85,7 +87,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 			public double next(Steppable s, double time) {
 				
 				// based on the time, go home
-				double currentHour = (time % world.ticks_per_day) / world.ticks_per_hour;
+				double currentHour = (time % Params.ticks_per_day) / Params.ticks_per_hour;
 				if(currentHour >= 17.){
 					Person p = (Person) s;
 					p.setActivityNode(travelToHomeNode);
@@ -109,7 +111,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				}
 				
 				// if it is not yet time to go home, wait until it is to activate again!
-				return (17. - currentHour) * world.ticks_per_hour; // don't active again until 5pm!
+				return (17. - currentHour) * Params.ticks_per_hour; // don't active again until 5pm!
 			}
 			
 		};
@@ -127,13 +129,13 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 				// We're travelling! Attempt to travel toward the workplace
 				Person p = (Person) s;
-				int outcome = p.navigate(world.resolution);
+				int outcome = p.navigate(Params.resolution);
 				
 				// if the Person has successfully made it to work, begin working for 8 hours. 
 				if(outcome > 0 && p.finishedPath()){
 					p.setActivityNode(workNode);
 					p.removeFromEdge();
-					return 8 * world.ticks_per_hour; // work 8 hours
+					return 8 * Params.ticks_per_hour; // work 8 hours
 				}
 				
 				// if the Person has *not* been successful in going to work, try to find another path.
@@ -172,13 +174,13 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 				// travel toward home
 				Person p = (Person) s;
-				int outcome = p.navigate(world.resolution);
+				int outcome = p.navigate(Params.resolution);
 				
 				// if the Person has successfully made it home, stay there for a while. 
 				if(outcome > 0 && p.finishedPath()){
 					p.setActivityNode(homeNode);
 					p.removeFromEdge();
-					return 10 * world.ticks_per_hour; // stay at home for 10 hours
+					return 10 * Params.ticks_per_hour; // stay at home for 10 hours
 				}
 				
 				// if the Person has *not* been successful in travelling home, try to find another path.
@@ -233,7 +235,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 				// first, check whether the carer is already here
 				if(p.dependentOf.getActivityNode() == travelToDependentNode &&
-						p.geometry.distance(p.dependentOf.geometry) <= world.resolution
+						p.geometry.distance(p.dependentOf.geometry) <= Params.resolution
 						) {
 				
 					// if so, begin evacuating and set the carer's status to be escorting
@@ -244,8 +246,8 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					
 					// if at least one of them has a vehicle, make sure both are travelling at that speed
 					if(p.myVehicle != null || p.dependentOf.myVehicle != null) {
-						p.setSpeed(TakamatsuSim.speed_vehicle);
-						p.dependentOf.setSpeed(TakamatsuSim.speed_vehicle);
+						p.setSpeed(Params.speed_vehicle);
+						p.dependentOf.setSpeed(Params.speed_vehicle);
 					}
 					else { // otherwise, make the dependent walk at the same speed as the person they're helping
 						p.dependentOf.setSpeed(p.getSpeed());
@@ -314,7 +316,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				// otherwise, thing have already been set up; continue moving toward the evacuation point
 				// =======
 
-				int outcome = p.navigate(world.resolution); // try to move along the path
+				int outcome = p.navigate(Params.resolution); // try to move along the path
 
 				Shelter shelter = p.targetShelter;
 
@@ -381,7 +383,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 						p.targetShelter = null;
 						
 						// they might be stuck in their house, in which case they'll shelter in place
-						if(p.geometry.getCoordinate().distance(p.getHousehold().home) < world.resolution) {
+						if(p.geometry.getCoordinate().distance(p.getHousehold().home) < Params.resolution) {
 							p.setActivityNode(shelteringNode);
 							p.evacuationRecord += ",ABORT_EVAC_TO_SHELTER_AT_HOME:" + (int)time;
 /*							if(p.evacuatingTime < 0)
@@ -459,14 +461,15 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 				// try to move along the path toward home
 				Person p = (Person) s;
-				int outcome = p.navigate(world.resolution);
+				int outcome = p.navigate(Params.resolution);
 				
 				// if the Person has successfully arrived at their home, they face a decision: 
 				// shelter in place OR evacuate to somewhere safer 
 				if(outcome > 0 && p.finishedPath()){
 					
 					// check to see if there is an appropriate shelter still 
-					// Shelter shelter = p.selectTargetShelter(ts.shelterLayer);
+					Shelter shelter = p.selectTargetShelter(ts.shelterLayer);
+					p.targetShelter = shelter;
 
 					// TODO more nuance
 					
@@ -518,16 +521,25 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 			@Override
 			public double next(Steppable s, double time) {
 
-				Person p = (Person) s;	
-				p.removeFromEdge();
-				p.evacuationRecord += ",SHELTERING:" + time + ",DONE";
-//				if(p.evacuatingTime > 0)
-//					p.evacuatingTime = time - p.evacuatingTime;
+				Person p = (Person) s;
+				/*
+				if(p.getHousehold().inHazardZone()) {
+					p.evacuationRecord += ",HOME_UNSAFE_PROMPTED_EVACUATING:" + time;
+					p.setActivityNode(evacuatingNode);
+					return 1;
+				}
+				else { */
+					p.removeFromEdge();
+					p.evacuationRecord += ",SHELTERING:" + time + ",DONE";
+//					if(p.evacuatingTime > 0)
+//						p.evacuatingTime = time - p.evacuatingTime;
+					
+					if(p.dependentOf != null)
+						System.out.println("nooo don't come visit");
+					return Double.MAX_VALUE;
+			//	}
 
-				if(p.dependentOf != null)
-					System.out.println("nooo don't come visit");
 
-				return Double.MAX_VALUE;
 			}
 			
 		};
@@ -567,7 +579,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				
 				// travel toward the workplace
 				Person p = (Person) s;
-				int outcome = p.navigate(world.resolution);
+				int outcome = p.navigate(Params.resolution);
 				
 				// if the Person has successfully reached their dependent, wait for that person to be ready! 
 				if(outcome > 0 && p.finishedPath()){
@@ -598,7 +610,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 							p.dependent.getGeometry().getCoordinate());
 					
 					// if they're far away, go to them!
-					if(p.dependent.currentAction == trappedNode && distanceToDependent > world.resolution) {
+					if(p.dependent.currentAction == trappedNode && distanceToDependent > Params.resolution) {
 						
 						// if they are trapped, travel to them (if possible!)
 						p.headFor(p.dependent.geometry.getCoordinate());
@@ -649,7 +661,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 					return 1;
 				}
 					
-				int outcome = p.navigate(world.resolution);
+				int outcome = p.navigate(Params.resolution);
 				
 				// if the Person has successfully reached their dependent, wait for that person to be ready! 
 				if(outcome > 0 && p.finishedPath()){
@@ -662,7 +674,7 @@ public class TakamatsuBehaviour extends BehaviourFramework {
 				*/		p.setActivityNode(travelToHomeNode);
 						p.headFor(p.getHousehold().home);
 						if(p.myVehicle == null)
-							p.setSpeed(TakamatsuSim.speed_pedestrian); // bump them back up in speed once separated
+							p.setSpeed(Params.speed_pedestrian); // bump them back up in speed once separated
 					}
 					else if(p.dependent.targetDestination != null){ // oops! No room! Keep going :(
 						p.headFor(p.dependent.targetDestination);

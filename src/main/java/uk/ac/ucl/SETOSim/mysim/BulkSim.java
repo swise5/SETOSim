@@ -4,7 +4,7 @@ public class BulkSim {
 	
 	public static void main(String [] args){
 		
-		boolean [] ageEnabled = new boolean [] {true};
+/*		boolean [] ageEnabled = new boolean [] {true};
 		boolean [] neighbourPolicy = new boolean [] {false};
 		boolean [] designatedHelperPolicy = new boolean [] {false};
 		String [] floodwaterFilename = new String [] {//"RitsurinDemo/emptyFloodingFile.shp", 
@@ -52,6 +52,15 @@ public class BulkSim {
 			}
 		}
 */
+		
+		String [] paramFiles = {"src/main/resources/params_L2L1_10.txt", "src/main/resources/params_L1L2_10.txt"};
+		for(String s: paramFiles) {
+			String [] bits = s.split("/");
+			String scenarioName = bits[bits.length - 1].replace('.', '_');
+			for(int i = 0; i < 15; i++) {
+				runInstanceFromParamFile(i, s, scenarioName, 24 * 60);
+			}
+		}
 	}
 	
 	public static void runInstance(int seed, boolean commuters,
@@ -63,13 +72,13 @@ public class BulkSim {
 		takamatsuModel.evacuationPolicy_neighbours = neighbourPolicy;
 		takamatsuModel.evacuationPolicy_designatedPerson = designatedHelperPolicy;
 		*/
-		takamatsuModel.floodedFilename = floodFilename;
+		takamatsuModel.params.floodedFilename = floodFilename;
 
 		String commutersCase = "commuters";
 		if(!commuters) {
 			commutersCase = "noCommuters";
-			takamatsuModel.numCommutersInbound = 0;
-			takamatsuModel.numCommutersOutbound = 0;
+			takamatsuModel.params.numCommutersInbound = 0;
+			takamatsuModel.params.numCommutersOutbound = 0;
 		}
 		
 		//String moddedFloodFilename = floodFilename.replace("/", "-");
@@ -77,8 +86,8 @@ public class BulkSim {
 		
 				
 				//ageEnabled + "_" + neighbourPolicy + "_" + designatedHelperPolicy + "_" + moddedFloodFilename + "_";
-		takamatsuModel.outputPrefix = outputFilename;
-		takamatsuModel.evacuationAreasFilename = takamatsuModel.dirName + "evacZonesInMeters.shp";
+		takamatsuModel.params.outputPrefix = outputFilename;
+		takamatsuModel.params.evacuationAreasFilename = takamatsuModel.params.dirName + "evacZonesInMeters.shp";
 		
 //		if(isTsunami)
 //			takamatsuModel.resetForTsunamiScenario();
@@ -90,6 +99,34 @@ public class BulkSim {
 		while(takamatsuModel.schedule.getTime() < time){ // ONLY 3 DAYS
 			takamatsuModel.schedule.step(takamatsuModel);
 			//System.out.println(takamatsuModel.schedule.getTime());
+			if(takamatsuModel.schedule.getTime() > lastTime + 100) {
+				System.out.print('.');
+				lastTime = takamatsuModel.schedule.getTime();
+			}
+		}
+		
+		takamatsuModel.finish();
+		
+		System.gc();
+
+	}
+	
+	public static void runInstanceFromParamFile(int seed, String paramFileName, String stubOutputName, int time) {
+		
+		TakamatsuSim takamatsuModel = new TakamatsuSim(seed, paramFileName);
+
+		//String moddedFloodFilename = floodFilename.replace("/", "-");
+		String outputFilename = "/Users/swise/Projects/hitomi/data/transit/output/o_" + stubOutputName;
+		
+		takamatsuModel.params.outputPrefix = outputFilename;
+	
+		takamatsuModel.start();
+
+		System.out.print("Running...");
+
+		double lastTime = 0;
+		while(takamatsuModel.schedule.getTime() < time){
+			takamatsuModel.schedule.step(takamatsuModel);
 			if(takamatsuModel.schedule.getTime() > lastTime + 100) {
 				System.out.print('.');
 				lastTime = takamatsuModel.schedule.getTime();
