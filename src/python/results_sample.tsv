@@ -1,0 +1,4 @@
+ID	age	status	evacuatingRecord	flooded	x_home	y_home	x_loc	y_loc
+1	55	Evacuating	START:1243	inZone	10	0	5	5
+2	25	Evacuated	START:1227,ENTER_SHELTER:1256,FINISH_EVAC:1257	inZone	8	2	0	1
+3	45	Trapped	START:1168,TRAPPED:1170.0,DONE	inZone	0	10	1	9

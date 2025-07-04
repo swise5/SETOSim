@@ -33,5 +33,5 @@ This is the readme file for Okazaki-w010_Trigger.csv
    - dependents (65 yrs old +) start evacuation
  - others
    - other all residents start evacuation
- - disaster
+ - flooding
    - start inundation
