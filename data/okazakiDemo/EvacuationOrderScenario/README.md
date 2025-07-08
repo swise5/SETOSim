@@ -6,8 +6,8 @@
     - YY: the actual flood inundation scenario (L1/L2)
     - ZZ: the percentage of voluntary evacuees (03/10)
     - *: whether the trigger for the Otogawa branch river is activated or not (N/B)
-    - N: not activated
-    - B: activated
+        - N: not activated
+        - B: activated
 ### columns
 - area_ID
     - Evacuation area is separated into two areas:
