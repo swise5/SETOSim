@@ -58,8 +58,8 @@
 - Data name: EvacuationOrderArea.shp
 - The data can be merged with XX-YY-ZZ-*.csv file by key = 'area_ID'(many-to-many matching)
 - area_ID
-- Evacuation area is separated into two areas:
-    - 002: Otogawa area
-    - 001: Others
+    - Evacuation area is separated into two areas:
+        - 002: Otogawa area
+        - 001: Others
 
 
