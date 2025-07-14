@@ -43,10 +43,10 @@
     - conservative / safe side scenario
     - Scenario where Level 2 (L2) is predicted and evacuation orders are issued accordingly, but Level 1 (L1) inundation actually occurs.
     - 10% of voluntary evacuees
-- L1-L2-10-B.csv
+- L1-L2-00-B.csv
     - non-conservative / unsafe side scenario
     - Scenario where Level 1 (L1) is predicted and evacuation orders are issued accordingly, but Level 2 (L2) inundation actually occurs.
-    - 10% of voluntary evacuees
+    - There is no trigger for voluntary evacuation, as the rainfall-based trigger is not activated under the L1 prediction.
     - Additional evacuation order issued for residents near the Otogawa River.
 - L2-L1-10-B.csv
     - conservative / safe side scenario
