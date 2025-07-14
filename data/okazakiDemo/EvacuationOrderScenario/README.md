@@ -55,7 +55,7 @@
     - Additional evacuation order issued for residents near the Otogawa River.
 
 ## Evacuation order area
-- Data name: EvacuationOrderArea.shp
+- file name: EvacuationOrderArea.shp
 - The data can be merged with XX-YY-ZZ-*.csv file by key = 'area_ID'(many-to-many matching)
 - area_ID
     - Evacuation area is separated into two areas:
