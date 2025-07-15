@@ -16,88 +16,11 @@ import sim.util.geo.MasonGeometry;
 import uk.ac.ucl.swise.objects.network.GeoNode;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import uk.ac.ucl.SETOSim.utilities.AStar;
+import uk.ac.ucl.SETOSim.utilities.SpatialTests;
 
-public class WayfindingTests {
+public class TrainStationTests {
 
 	public static String testingDirectory = "data/testing/";
-	
-	@Test
-	/**
-	 * Confirm that the Person object finds the shortest route between two locations.
-	 */
-	public void PersonFindsShortestRoute() {
-		// SETUP //////////////////////////////////////////
-		
-		// create world, set up the pathfinder, and pull out two nodes
-		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
-		world.pathfinder = new AStar();
-		
-		// generate the person at one of the nodes and have them create a reasonable path
-		Coordinate startPoint = new Coordinate(0, 0); // southmost point
-		Coordinate endPoint = new Coordinate(10, 0);  // northmost point
-
-		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
-		
-		// SUT //////////////////////////////////////////
-		p.headFor(endPoint);
-		
-		// TESTING //////////////////////////////////////////
-		
-		// did it actually find a path?
-		assertTrue(p.hasPath());
-		
-		// is it the *correct* path?
-		ArrayList <Edge> myPath = p.getPath();
-		String [] roadIds = new String [] {"2", "1", "0"}; // road segment IDs for dummy data
-		assertEquals(p.getPath().size(), roadIds.length);  // this must match if they match
-		
-		// confirm segment by segment
-		for(int i = 0; i < p.getPath().size(); i++) {
-			// pull out the ID of the next segment in the path
-			String roadName = ((MasonGeometry)myPath.get(i).info).getStringAttribute("osm_id"); 
-			assertEquals(roadName, roadIds[i]); // check that it's correct
-		}
-	}
-	
-	@Test
-	/**
-	 * Confirm that a Person who tries to use an inaccessible road segment fails in the attempt. Likewise,
-	 * ensure that the mere existence of a blocked path doesn't keep the Person from reaching a different,
-	 * accessible location.
-	 */
-	public void BlockedRouteIsInaccessible() {
-		// SETUP //////////////////////////////////////////
-		
-		// create world, set up the pathfinder, and pull out two nodes
-		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
-		world.pathfinder = new AStar();
-		
-		// generate the person at one of the nodes and have them create a reasonable path
-		Coordinate startPoint = new Coordinate(0, 0);
-		Coordinate endPoint_inaccessible = new Coordinate(-5, 10);
-		Coordinate endPoint_accessible = new Coordinate(10, 0);
-
-		// create the person
-		Person p = PersonTests.createDummyPerson(world, 0, startPoint);
-		
-		// close the roads
-		for(Object o: world.roadClosures.get(1)) // take all roads where the depth is set to 1 (only road 3, 'r3')
-			((MasonGeometry) o).addAttribute("open", "CLOSED"); // close any relevant roads
-		
-		// SUT //////////////////////////////////////////
-		p.headFor(endPoint_inaccessible);
-		boolean hasPathToInaccessibleEndpoint = p.hasPath();
-		
-		p.headFor(endPoint_accessible);
-		
-		// TESTING //////////////////////////////////////////
-		
-		// did it find a path to the inaccessible point?
-		assertFalse(hasPathToInaccessibleEndpoint);
-		
-		// did it find a path to the accessible point?
-		assertTrue(p.hasPath());
-	}
 	
 	@Test
 	/**
@@ -320,21 +243,17 @@ public class WayfindingTests {
 		// region, and must go to shelters. They can begin by either being:
 		// - travelling on the way to work
 		// - travelling on the way home
-		Person commuter_travellingToHome = PersonTests.createDummyPerson(world, 0, world.notInSimulation, null);//world.notInSimulation, world.notInSimulation);//,
-//			   commuter_travellingToWork = PersonTests.createDummyPerson(world, 1, world.notInSimulation, world.notInSimulation);
+		Person commuter_travellingHomeFromOutsideSimArea = PersonTests.createDummyPerson(world, 0, world.notInSimulation, null),
+			   commuter_travellingToWorkThroughSimArea = PersonTests.createDummyPerson(world, 1, world.notInSimulation, world.notInSimulation);
 
 		// set them to be travelling either home or to work, as appropriate 
-		commuter_travellingToHome.currentAction = world.behaviourFramework.travelToHomeNode;
-		//commuter_travellingToWork.currentAction = world.behaviourFramework.travelToWorkNode;
+		commuter_travellingHomeFromOutsideSimArea.currentAction = world.behaviourFramework.travelToHomeNode;
+		commuter_travellingToWorkThroughSimArea.currentAction = world.behaviourFramework.travelToWorkNode;
 
 		// Schedule them all to start doing things
-		commuter_travellingToHome.scheduleArrival(world.stations.get(0), 8 * world.params.ticks_per_hour);
-		//commuter_travellingToWork.scheduleArrival(world.stations.get(1), 8 * world.ticks_per_hour);
+		commuter_travellingHomeFromOutsideSimArea.scheduleArrival(world.stations.get(0), 8 * world.params.ticks_per_hour);
+		commuter_travellingToWorkThroughSimArea.scheduleArrival(world.stations.get(1), 8 * world.params.ticks_per_hour);
 		
-		// holders
-		boolean a_s1_arrived = false, a_s2_arrived = false;
-		boolean l_s1_travelling = false, l_s2_travelling = false;
-
 		// force stopper to slow things down
 		Steppable forceStopper = new Steppable() {
 			@Override
@@ -360,10 +279,12 @@ public class WayfindingTests {
 		// TESTING ////////////////////////////////////////
 		
 		// Check that the arrivers have gotten home safely
-		assertEquals(commuter_travellingToHome.geometry.getCoordinate(), new Coordinate(0, 0)); // Station 1 -> Shelter 1
+		assertEquals(commuter_travellingHomeFromOutsideSimArea.geometry.getCoordinate(), new Coordinate(0, 0)); // Station 1 -> Shelter 1
+		assertEquals(commuter_travellingToWorkThroughSimArea.geometry.getCoordinate(), new Coordinate(10, 0));
 
 		// Check that they've all changed statuses as appropriate
-		assertEquals(commuter_travellingToHome.currentAction, world.behaviourFramework.evacuatedNode);
+		assertEquals(commuter_travellingHomeFromOutsideSimArea.currentAction, world.behaviourFramework.evacuatedNode);
+		assertEquals(commuter_travellingToWorkThroughSimArea.currentAction, world.behaviourFramework.evacuatedNode);
 		
 	}
 }

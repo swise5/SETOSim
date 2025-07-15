@@ -7,6 +7,7 @@ import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 import com.vividsolutions.jts.geom.Coordinate;
 
 import sim.engine.Steppable;
+import sim.util.geo.MasonGeometry;
 import uk.ac.ucl.swise.behaviours.*;
 import uk.ac.ucl.swise.objects.network.GeoNode;
 
@@ -45,19 +46,18 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					
 					if(p.work != null){
 						
-						// try to enter the road network
-						int placed = p.placeOnEdge(p.geometry.getCoordinate());
-						if(placed > 0) {
-							p.setActivityNode(travelToWorkNode);
-							p.headFor(p.work);
-						}
-						else {// if we can't leave, just proceed straight to sheltering
+						// try to go to work
+						MovementOutcome outcome = p.headFor(p.work);
+						if(outcome != MovementOutcome.successfulMovement) {
 							p.setActivityNode(shelteringNode);
 							p.evacuationRecord += ",SHELTER_AT_HOME:" + (int)time;
-							return 1;
+							return 1;							
 						}
+
+						p.setActivityNode(travelToWorkNode);
+						if(p.myVehicle != null)
+							p.myVehicle.setOperator(p);
 						
-						//System.out.print("h");
 						return 1;
 					}
 					else {
@@ -92,11 +92,10 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					Person p = (Person) s;
 					p.setActivityNode(travelToHomeNode);
 					
-					// try to enter the road network
-					int placed = p.placeOnEdge(p.geometry.getCoordinate());
-					if(placed >= 0)
-						p.headFor(p.getHousehold().home);
-					else { // if can't enter it, shelter in place here
+					MovementOutcome outcome = p.headFor(p.getHousehold().home);
+					
+					// if can't enter it, shelter in place here
+					if(outcome != MovementOutcome.successfulMovement) {
 						p.setActivityNode(shelteringNode);
 						String report = "SHELTER_AT_WORK:" + time;
 						if(p.evacuationRecord== null)
@@ -106,6 +105,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 						//p.evacuatingTime = -2; // set distinctly to indicate that they were not able to evacuate at all
 						return 1;
 					}
+					else if(p.myVehicle != null)
+						p.myVehicle.setOperator(p);
 					
 					return 1;
 				}
@@ -129,31 +130,43 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				
 				// We're travelling! Attempt to travel toward the workplace
 				Person p = (Person) s;
-				int outcome = p.navigate(Params.resolution);
 				
-				// if the Person has successfully made it to work, begin working for 8 hours. 
-				if(outcome > 0 && p.finishedPath()){
-					p.setActivityNode(workNode);
-					p.removeFromEdge();
-					return 8 * Params.ticks_per_hour; // work 8 hours
-				}
-				
-				// if the Person has *not* been successful in going to work, try to find another path.
-				if(outcome < 0) {
+				try {
+					int outcome = p.navigate(Params.resolution);
 					
-					Coordinate workLoc = p.work;
-					if(workLoc == null) {
-						GeoNode station = world.getNearestOpenStation(p.geometry);
-						workLoc = station.geometry.getCoordinate();
+					// if the Person has successfully made it to work, begin working for 8 hours. 
+					if(outcome > 0 && p.finishedPath()){
+						p.setActivityNode(workNode);
+						p.removeFromEdge();
+						
+						if(p.isOperatingVehicle())
+							p.stopOperatingVehicle();
+						
+						return 8 * Params.ticks_per_hour; // work 8 hours
 					}
-					MovementOutcome headToWork = p.headFor(workLoc);
+					
+					// if the Person has *not* been successful in going to work, try to find another path.
+					if(outcome < 0) {
+						
+						Coordinate workLoc = p.work;
+						if(workLoc == null) {
+							GeoNode station = world.getNearestOpenStation(p.geometry);
+							workLoc = station.geometry.getCoordinate();
+						}
+						MovementOutcome headToWork = p.headFor(workLoc);
 
-					// if no path can be found and they have nothing further to explore, just go home
-					if(headToWork == MovementOutcome.unrecoverableRoutingFailure) {
-						p.setActivityNode(travelToHomeNode);
-						p.headFor(p.getHousehold().home);
+						// if no path can be found and they have nothing further to explore, just go home
+						if(headToWork == MovementOutcome.unrecoverableRoutingFailure) {
+							p.setActivityNode(travelToHomeNode);
+							p.headFor(p.getHousehold().home);
+						}
 					}
+					
+				} catch(Exception e) {
+					p.setActivityNode(travelToHomeNode);
+					p.headFor(p.getHousehold().home);					
 				}
+				
 				
 				// if we get here, the Person still has further to travel. Keep going!
 				return 1;
@@ -178,13 +191,18 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				
 				// if the Person has successfully made it home, stay there for a while. 
 				if(outcome > 0 && p.finishedPath()){
+					
+					if(p.isOperatingVehicle())
+						p.stopOperatingVehicle();
+
 					p.setActivityNode(homeNode);
 					p.removeFromEdge();
+
 					return 10 * Params.ticks_per_hour; // stay at home for 10 hours
 				}
 				
 				// if the Person has *not* been successful in travelling home, try to find another path.
-				if(outcome < 0){
+				else if(outcome < 0){
 					MovementOutcome headToHome = p.headFor(p.getHousehold().home);
 					
 					// if no path can be found and they have nothing further to explore, we can't get
@@ -290,23 +308,29 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					
 					// pick a shelter and try to find a route there
 					Shelter myShelter = p.selectTargetShelter(ts.shelterLayer);
-					MovementOutcome headForShelter = p.headFor(myShelter.entrance);
 					
-					// it may be that the Person couldn't identify a path to that particular
-					// shelter - in which case they should check other shelters!
-					if(headForShelter == MovementOutcome.unrecoverableRoutingFailure)
-						p.fullShelters.add(myShelter);
+					try {
+						MovementOutcome headForShelter = p.headFor(myShelter.entrance);	
+						// it may be that the Person couldn't identify a path to that particular
+						// shelter - in which case they should check other shelters!
+						if(headForShelter == MovementOutcome.unrecoverableRoutingFailure)
+							p.fullShelters.add(myShelter);
 
-					// if they *did* find an accessible Shelter, keep a copy of it as the goal
-					else {
-						p.targetShelter = myShelter;
-						
-						// if someone is responsible for me, they should also come to the shelter
-						if(p.dependentOf != null) {
-							p.dependentOf.headFor(myShelter.entrance);
-							p.dependentOf.targetShelter = myShelter;
+						// if they *did* find an accessible Shelter, keep a copy of it as the goal
+						else {
+							p.targetShelter = myShelter;
+							
+							// if someone is responsible for me, they should also come to the shelter
+							if(p.dependentOf != null) {
+								p.dependentOf.headFor(myShelter.entrance);
+								p.dependentOf.targetShelter = myShelter;
+							}
+							
 						}
-						
+					} catch (Exception e) {
+						// no shelters exist in the simulation - so try to shelter at home!
+						p.setActivityNode(travelToHomeShelteringNode);
+						return 1;
 					}
 					
 					return 1; // check in again next step
@@ -332,6 +356,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 						p.setActivityNode(evacuatedNode);
 						p.evacuationRecord += ",ENTER_SHELTER:" + (int)time;
 						//p.evacuatingTime = time - p.evacuatingTime;
+
+						// TODO if dependents are happening, update their possible passenger-ness here!!
 						
 						// special record-keeping if the Person is being escorted as a dependent
 						if(p.dependentOf != null) {
@@ -351,7 +377,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 						p.turnedAwayFromShelterCount += 1;
 						p.fullShelters.add(shelter);
 						if(p.world.verbose)
-							System.out.println(p.getMyID() + "\tshelterFull");						
+							System.out.println(p.getMyID() + "\tshelterFull");
+						p.targetShelter = null;
 					}
 					
 				}
@@ -466,6 +493,9 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				// if the Person has successfully arrived at their home, they face a decision: 
 				// shelter in place OR evacuate to somewhere safer 
 				if(outcome > 0 && p.finishedPath()){
+					
+					if(p.isOperatingVehicle())
+						p.stopOperatingVehicle();
 					
 					// check to see if there is an appropriate shelter still 
 					Shelter shelter = p.selectTargetShelter(ts.shelterLayer);

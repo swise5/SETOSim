@@ -24,6 +24,13 @@ public class PersonTests {
 		Person p = new Person("dummy_" + id, startLocation, homeLocation, workLocation, null, 0, 0, world);
 		return p;
 	}
+	
+	
+	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate startLocation, Coordinate homeLocation, Coordinate workLocation, Household h) {
+		Person p = new Person("dummy_" + id, startLocation, homeLocation, workLocation, h, 0, 0, world);
+		return p;
+			
+	}
 
 	/************************ END UTILITIES FOR TESTING *************************************/
 

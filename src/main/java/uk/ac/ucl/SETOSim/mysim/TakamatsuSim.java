@@ -9,8 +9,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.channels.FileLock;
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -59,7 +65,7 @@ public class TakamatsuSim extends SimState {
 
 	// settings
 	public Params params;
-	public static String paramsFilename = "src/main/resources/params_L2L1_10.txt";
+	public static String paramsFilename = "src/main/resources/params_default.txt";
 	long mySeed = 0;
 	
 	public static boolean verbose = false;
@@ -222,7 +228,8 @@ public class TakamatsuSim extends SimState {
 			weightRoads();
 			
 			// set up train stations
-			setupStations();
+			if(params.stationFilename != null && params.stationFilename.length() > 0)
+				setupStations();
 			
 			// add shelter entrance info
 			setupShelters();
@@ -409,12 +416,72 @@ public class TakamatsuSim extends SimState {
 		
 	}
 	
+	public double convertTimeToTicks (String date, DateTimeFormatter formatter) {
+		try {
+			// get time of the event
+			LocalDateTime evacDate = LocalDateTime.parse(date, formatter);
+			
+			// compare the two times, converting to hours and then ticks per hour
+			double diff = Duration.between(params.simulationStart, evacDate).toHoursPart() * params.ticks_per_hour;
+			
+			// return this difference
+			return diff;
+			
+		} catch (Exception e) {
+			
+			// otherwise, just say it's right now
+			return schedule.getTime();
+		}
+	}
+	
 	public void scheduleEvacuationOrders() {
 		
 		// multiple phases - either 
 		//    1. denoted by time (if the geometries have "time" parameters
 		//    2. denoted by area, with an "optional" evac order 
 
+		if( params.evacuationScenarioFilename != null ) {
+			
+			// first, pull out all of the areas by name so they can be accessed easily
+			HashMap <String, MasonGeometry> evacAreaNameMapping = new HashMap <String, MasonGeometry> ();
+			for(Object o: this.evacuationAreas.getGeometries()) {
+				MasonGeometry mg = (MasonGeometry) o;
+				String myID = mg.getStringAttribute(params.evacuationAreaIDColumnName);
+				evacAreaNameMapping.put(myID, mg);
+			}
+			
+			// next, iterate through the evacuation events and schedule them
+			ArrayList <String> events = InputCleaning.readInTextDataAsLines(params.formatInputFilename(params.evacuationScenarioFilename), 
+					"defined evacuation scenario");
+			
+			// data parser
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+			
+			for(int i = 1; i < events.size(); i++) { // ignore the header
+				String [] bits = events.get(i).split(",");
+				String areaName = bits[0], rawTime = bits[1], dependents = bits[3], others = bits[4], floodStart = bits[5];
+				double voluntaryPerc = Double.parseDouble(bits[2]);
+				
+				double parsedTime = convertTimeToTicks(rawTime, formatter);
+				
+				boolean elderly = dependents.equals("1"),
+						minors = false,
+						all = others.equals("1");
+
+				// set up with the correct parameters
+				AreaEvacuater scheduledEvac;
+				if(all)
+					scheduledEvac = new AreaEvacuater(voluntaryPerc, evacAreaNameMapping.get(areaName).geometry);
+				else
+					scheduledEvac = new AreaEvacuater(voluntaryPerc, evacAreaNameMapping.get(areaName).geometry, elderly, minors);
+				
+				schedule.scheduleOnce(parsedTime, scheduledEvac);
+			}
+			
+			return;
+		}
+		
+		// otherwise, do it by the areas; the geometries should have a column with the TIME of the evacuation
 		for(Object o: this.evacuationAreas.getGeometries()) {
 			MasonGeometry mg = (MasonGeometry) o;
 			
@@ -450,10 +517,18 @@ public class TakamatsuSim extends SimState {
 
 		double percentageCompliance = 1.;
 		Geometry g;
+		boolean elderly = false;
+		boolean minors = false;
 		
 		public AreaEvacuater(double compliance, Geometry geom) {
 			this.percentageCompliance = compliance;
 			this.g = geom;
+		}
+		
+		public AreaEvacuater(double compliance, Geometry geom, boolean elderly, boolean minors) {
+			this(compliance, geom);
+			this.elderly = elderly;
+			this.minors = minors;
 		}
 		
 		@Override
@@ -463,21 +538,29 @@ public class TakamatsuSim extends SimState {
 			HashSet <Household> householdsImpacted = new HashSet <Household> ();
 			HashSet <Person> peopleImpacted = new HashSet <Person> ();
 
+			// update all households
 			Bag b = householdsLayer.getObjectsWithinDistance(g, params.hazardThresholdDistance);
 			householdsImpacted.addAll(b);
 			
+			boolean allGroups = !(elderly || minors); // if it's neither case, all should evacuate
+			for(Household h: householdsImpacted)
+				if( allGroups || 
+						(this.elderly && h.hasElderly()) || // if there are elderly people 
+						(this.minors && h.hasMinors()))     // if there are minors
+				h.setInHazardZone(true);
+
 			Bag p = agentsLayer.getObjectsWithinDistance(g, params.hazardThresholdDistance);
 			peopleImpacted.addAll(p);
 			
-			for(Household h: householdsImpacted)
-				h.setInHazardZone(true);
-
-			// make sure everyone scheduled to be inundated checks in
+			// make sure everyone in the inundated area knows about it!
 			for(Person a: peopleImpacted) {
+				
+				a.setInundated(true); // they're all inundated
+
+				// they might try to do something about it
 				if(arg0.random.nextDouble() > percentageCompliance)
 					continue;
 				
-				a.setInundated(true);
 				arg0.schedule.scheduleOnce(a);
 			}
 
@@ -743,7 +826,8 @@ public class TakamatsuSim extends SimState {
 	public void setupShelters() {
 		
 		Bag shelterAtts = new Bag();
-		shelterAtts.add("parkingcap"); shelterAtts.add("entranceX"); shelterAtts.add("entranceY"); shelterAtts.add("Name");
+		String [] attsToAdd = {"capacity", "parkingcap", "entranceX", "entranceY", "name"};
+		shelterAtts.addAll(attsToAdd);
 		GeomVectorField shelterRaw = InputCleaning.readInVectorLayer(//dirName + 
 				params.formatInputFilename(params.sheltersFilename), params.grid_width, params.grid_height, "shelters", shelterAtts);
 		shelterLayer = new GeomVectorField(params.grid_width, params.grid_height);
@@ -754,7 +838,7 @@ public class TakamatsuSim extends SimState {
 			if(shelter.hasAttribute("capacity")) numPeople = (int) shelter.getIntegerAttribute("capacity");
 			if(shelter.hasAttribute("parkingcap")) numParkingSpaces = (int) shelter.getIntegerAttribute("parkingcap");
 			Shelter myShelter = new Shelter(shelter, numPeople, numParkingSpaces, this);
-			myShelter.addStringAttribute("name", shelter.getStringAttribute("Name"));
+			myShelter.addStringAttribute("name", shelter.getStringAttribute("name"));
 			shelterLayer.addGeometry(myShelter);
 		}
 
@@ -1013,7 +1097,7 @@ public class TakamatsuSim extends SimState {
 			takamatsuModel = new TakamatsuSim(seed);
 
 		// set up any other specifics accordingly
-		Integer timeToRun = 60 * 24;
+		Integer timeToRun = 900;//60 * 24;
 		boolean tsunamiScenario = false;
 		try {
 			

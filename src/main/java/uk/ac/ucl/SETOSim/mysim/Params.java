@@ -8,9 +8,12 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+
+import java.time.LocalDateTime;
 
 public class Params {
 	
@@ -29,6 +32,9 @@ public class Params {
 	// each tick represent 1 minute
 	public static double ticks_per_hour = 60; 
 	public static double ticks_per_day = ticks_per_hour * 24;
+	
+
+	public static LocalDateTime simulationStart = LocalDateTime.of(2019, 10, 12, 0, 0);
 	
 	// SPEED
 
@@ -50,7 +56,7 @@ public class Params {
 	public static double neighbourDistance = 100; // meters
 
 	public static double rayleigh_sigma = 2; // from Wang et al, http://dx.doi.org/10.1016/j.trc.2015.11.010
-	public static double hazardThresholdDistance = 100; // meters
+	public static double hazardThresholdDistance = 1; // meters
 	public double compliance = 1.;
 
 	// dummies used to test following behaviours
@@ -65,11 +71,11 @@ public class Params {
 	public static int forecastingWidthParam = 720; // in ticks
 	public static int forecastNoticePeriod = (int) (6 * ticks_per_hour); // in ticks
 	public static String roadInundationColumnName = "depth";
-	public static double roadInundationImpassableDepth = .1; // beyond this point, roads are impassable
+	public static double roadInundationImpassableDepth = .001; // beyond this point, roads are impassable
 	
 	// POPULATION SETUP
 	
-	public double percIgnored = .99;// percent TO OMIT
+	public double percIgnored = .95;// percent TO OMIT
 	public int numCommutersOutbound = 0;//21331; // TODO this is a hack for Okazaki demo
 	public int numCommutersInbound = 0;//16458;
 	
@@ -80,15 +86,17 @@ public class Params {
 	
 	public String dirName = "data/okazakiDemo/";//ritsurinDemo/";
 		
-	public static String agentFilename = "synthPop_testing.txt";//"dummyPop.txt";
+	public static String agentFilename = "synthPop_kagawaHHs.txt";//"dummyPop.txt";
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
 	public String floodedFilename = "simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
 	public String waterFilename = "waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "sheltersWithParking.shp";
-	public String buildingsFilename = "buildings10m.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
+	public String sheltersFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp";
+	public String buildingsFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";//buildings10m.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
 	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
-	public String stationFilename = "trainStationsWithPassengers.shp";
-	public String evacuationAreasFilename = "evacZonesInMeters.shp";
+	public String stationFilename = ""; //"trainStationsWithPassengers.shp";
+	public String evacuationAreasFilename = "EvacuationOrderScenario/EvacuationOrderArea_reproj.shp";//"evacZonesInMeters.shp";
+	public String evacuationAreaIDColumnName = "areaID";
+	public String evacuationScenarioFilename = "EvacuationOrderScenario/L2-L1-10-N.csv"; // "" - if no timing info!
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
 /*

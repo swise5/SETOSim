@@ -51,10 +51,12 @@ public class PopulationSynthesis {
 	String weightedRoadAttribute = "highway";//"HIERARCHY";
 	String [] roadTypesToBuildHouses = {"!motorway"};//{"RESIDENTIAL", "house"};
 	
+	public static String buildingUniqueCodeColname = "gml_id";//"fid";
 	
-	String buildingsFilename = "";
+	
+	String buildingsFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";
 
-	String householdsFilename = "";//"OkazakiHouseholdsBasic.tsv";
+	String householdsFilename = "/Users/swise/Projects/hitomi/data/KagawaHouseholdsBasic.tsv";//"OkazakiHouseholdsBasic.tsv";
 
 	// Canberra version
 	//int targetNumIndividualsToGenerate = 466000;//140000;//427942; // TODO should ideally/potentially be reading from file!!!! 
@@ -157,7 +159,7 @@ public class PopulationSynthesis {
 		random = new MersenneTwisterFast(seed);
 		
 		// read in data
-		GeomVectorField roads = readInVectors(dirName + roadsFilename);
+		GeomVectorField roads = readInVectors(formatInputFilename(roadsFilename));
 		roadNetwork = NetworkUtilities.multipartNetworkCleanup(roads, new Bag(), resolution, gf, random, 0);
 
 		// construct the houses into which individuals are to be slotted
@@ -169,7 +171,7 @@ public class PopulationSynthesis {
 			candidateHouses = generateHousesFromScratch(buildings, roadNetwork);
 		}
 		else {
-			buildings = readInVectors(dirName + buildingsFilename);
+			buildings = readInVectors(formatInputFilename(buildingsFilename));
 			candidateHouses = generateHouses(buildings, roadNetwork);			
 		}
 		
@@ -180,8 +182,13 @@ public class PopulationSynthesis {
 		if(demoFilename.endsWith(".shp"))
 		{
 			// process for each unit of geometry
-			GeomVectorField populationGrid = readInVectors(demoFilename);
+			GeomVectorField populationGrid = readInVectors(formatInputFilename(demoFilename));
 			ArrayList<ArrayList<Agent>> allHouseholdsInRegion = new ArrayList<ArrayList<Agent>>(); 
+			
+			ArrayList <Double> fitOfHhldsTot = new ArrayList <Double> (), 
+					fitOfHhldsMin = new ArrayList <Double> (), 
+					fitOfHhldsEld = new ArrayList <Double> ();					
+			
 			for(Object o: populationGrid.getGeometries()) {
 				
 				MasonGeometry myDistrict = (MasonGeometry) o;
@@ -190,7 +197,8 @@ public class PopulationSynthesis {
 				ArrayList <Agent> allIndividuals = generateIndividualsFromShapefile(ageSex);
 				
 				if(allIndividuals == null) continue;
-				ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholdsFromShapefiles(myDistrict, allIndividuals);
+				
+				ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals, myDistrict.getDoubleAttribute("TotHhld"));
 				
 				// try to find houses within the district
 				candidateHouses = new HashSet <MasonGeometry> (buildings.getCoveredObjects(myDistrict));
@@ -208,9 +216,15 @@ public class PopulationSynthesis {
 				assignHouseholdsToHouses(allHouseholds, candidateHouses);
 				
 				allHouseholdsInRegion.addAll(allHouseholds);
+				
+				double [] fits = shapefileHouseholdsFit(myDistrict, allHouseholds);
+				fitOfHhldsTot.add(fits[0]); fitOfHhldsMin.add(fits[1]); fitOfHhldsEld.add(fits[2]);
 			}
 			
-			writeOutHouseholds(allHouseholdsInRegion);
+			System.out.println(fitOfHhldsTot.toString());
+			System.out.println(fitOfHhldsMin.toString());
+			System.out.println(fitOfHhldsEld.toString());
+	//		writeOutHouseholds(allHouseholdsInRegion);
 		}
 		else {
 			// generate the individuals and assemble them into households
@@ -274,6 +288,30 @@ public class PopulationSynthesis {
 		
 	}
 
+	
+	double [] shapefileHouseholdsFit(MasonGeometry district, ArrayList <ArrayList <Agent>> households){
+		double numHouseholds = 0, numWithMinors = 0, numWithElderly = 0;
+		for(ArrayList <Agent> hh: households)
+		{
+			numHouseholds++;
+			boolean hasMinor = false, hasElderly = false;
+			for(Agent a: hh) {
+				if(a.age <= 3) // less than 15
+					hasMinor = true;
+				else if(a.age > 12)
+					hasElderly = true;
+			}
+			if(hasMinor) numWithMinors++;
+			if(hasElderly) numWithElderly++;
+		}
+		
+		double hhNumDiff = district.getDoubleAttribute("TotHhld") - numHouseholds, 
+				hhMinorDiff = district.getDoubleAttribute("Hhld<6") - numWithMinors, 
+				hhElderlyDiff = district.getDoubleAttribute("Hhld65+") - numWithElderly;
+		double [] result = {hhNumDiff, hhMinorDiff, hhElderlyDiff};
+		return result;
+	}
+	
 	public void writeOutHouseholds(ArrayList <ArrayList <Agent>> households){
 		String fout = dirName + "synthPop_hh_" + System.currentTimeMillis() + ".txt";
 		
@@ -285,7 +323,7 @@ public class PopulationSynthesis {
 			for(ArrayList <Agent> h: households){
 				String myHH = "HOUSEHOLD_" + index++;
 				MasonGeometry myHHLocation = h.get(0).home;
-				String myName = myHHLocation.getStringAttribute("fid");
+				String myName = myHHLocation.getStringAttribute(buildingUniqueCodeColname);
 //				Coordinate c = myHHLocation.geometry.getCoordinate();
 //				myHH += "\t" + c.x + "\t" + c.y + "\t";
 				myHH += "\t" + myName;
@@ -499,7 +537,7 @@ public class PopulationSynthesis {
 		HashMap <String, Double> ratioEmployed = new HashMap <String, Double> ();
 		try {
 			// Open the tracts file
-			FileInputStream fstream = new FileInputStream(travelToWorkFilename);
+			FileInputStream fstream = new FileInputStream(formatInputFilename(travelToWorkFilename));
 			
 			// Convert our input stream to a BufferedReader
 			BufferedReader flowData = new BufferedReader(new InputStreamReader(fstream));
@@ -856,7 +894,7 @@ public class PopulationSynthesis {
 		try {
 			
 			// open the demographic file
-			fstream = new FileInputStream(dirName + demoFilename);
+			fstream = new FileInputStream(formatInputFilename(demoFilename));
 
 			// Convert our input stream to a BufferedReader
 			BufferedReader demoData = new BufferedReader(new InputStreamReader(fstream));
@@ -1001,7 +1039,7 @@ public class PopulationSynthesis {
 			try {
 				
 				// open the demographic file
-				fstream = new FileInputStream(dirName + householdsFilename);
+				fstream = new FileInputStream(formatInputFilename(householdsFilename));
 
 				// Convert our input stream to a BufferedReader
 				BufferedReader householdData = new BufferedReader(new InputStreamReader(fstream));
@@ -1035,7 +1073,7 @@ public class PopulationSynthesis {
 			}			
 		}
 	
-	
+/*	
 	ArrayList <ArrayList<Agent>> generateHouseholdsFromShapefiles(MasonGeometry spatialUnit, ArrayList <Agent> individuals){
 		
 		ArrayList <ArrayList<Agent>> allHouseholds = new ArrayList <ArrayList <Agent>> ();
@@ -1305,14 +1343,19 @@ public class PopulationSynthesis {
 		
 		return allHouseholds;
 	}
+	*/
 	
+	// wrapper to just call the default value
+	ArrayList <ArrayList<Agent>> generateHouseholds(ArrayList <Agent> individuals){
+		return generateHouseholds(individuals, this.targetNumHouseholdsToGenerate);
+	}
 	
 	/**
 	 * Generate a set of households based on the provided set of individuals and household parameters
 	 * @param individuals - the set of individuals generated from this census area
 	 * @return sets of Agents grouped into households
 	 */
-	ArrayList <ArrayList<Agent>> generateHouseholds(ArrayList <Agent> individuals){
+	ArrayList <ArrayList<Agent>> generateHouseholds(ArrayList <Agent> individuals, double numHouseholds){
 				
 		ArrayList <ArrayList<Agent>> allHouseholds = new ArrayList <ArrayList <Agent>> ();
 		ArrayList <ArrayList<Agent>> familyHouseholds = new ArrayList <ArrayList <Agent>>();
@@ -1322,17 +1365,18 @@ public class PopulationSynthesis {
 				
 		
 		// GENERATE THE HOUSEHOLDS
-		double numHouseholds = getSum(householdTypeRatios);
+		
+		//double numHouseholds = getSum(householdTypeRatios);
 		
 		System.out.println("Generating households...");
-		for(int i = 0; i < targetNumHouseholdsToGenerate; i++){
+		for(int i = 0; i < numHouseholds; i++) {//targetNumHouseholdsToGenerate; i++){
 			
 			if(i % 100 == 0)
 				System.out.print('.');
 			
 			// if the set of individuals is now empty, no need to keep trying to create households!
 			if(individuals.size() == 0){ 
-				i = (int) targetNumHouseholdsToGenerate;
+				i = (int) numHouseholds;//targetNumHouseholdsToGenerate;
 				continue;
 			}
 			
@@ -1526,15 +1570,33 @@ public class PopulationSynthesis {
 		// allocated unassigned individuals //////////////////////////////////////////////////////
 		//////////////////////////////////////////////////////////////////////////////////////////
 
+		// try to find a "general", catch-all household to accept the individuals
+		ArrayList<ArrayList<Agent>> householdsAcceptingLeftoverIndividuals = allHouseholds;
+		
+		// if the "general" households can't accept them, try to add them to family households
+		if(allHouseholds.size() <= 0 && familyHouseholds.size() > 0)
+			householdsAcceptingLeftoverIndividuals = familyHouseholds;
+		
+		// if neither of those exists, then it's likely an institution of some sort - so set up
+		// a single household to hold everyone
+		else {
+			ArrayList <Agent> institutionalHousehold = new ArrayList <Agent> ();
+			householdsAcceptingLeftoverIndividuals = new ArrayList <ArrayList <Agent>> ();
+			householdsAcceptingLeftoverIndividuals.add(institutionalHousehold);
+		}
+		
+		int numAcceptingHouseholds = householdsAcceptingLeftoverIndividuals.size();
+		
 		int leftoverIndividualsToAllocate = individuals.size();
-		int allHouseholdsSize = allHouseholds.size(); 
+	
 		while(leftoverIndividualsToAllocate > 0){
 			Agent member = individuals.remove(random.nextInt(leftoverIndividualsToAllocate));
-			//familyHouseholds.get(random.nextInt(familyHouseholds.size())).add(member); TODO this was stupid
-			allHouseholds.get(random.nextInt(allHouseholdsSize)).add(member);
+			householdsAcceptingLeftoverIndividuals.get(random.nextInt(numAcceptingHouseholds)).add(member);
 			leftoverIndividualsToAllocate--;
 		}
-	
+
+		
+		
 		//////////////////////////////////////////////////////////////////////////////////////////
 		// set up basic household social networks ////////////////////////////////////////////////
 		//////////////////////////////////////////////////////////////////////////////////////////
@@ -1815,6 +1877,14 @@ public class PopulationSynthesis {
 	}
 
 	
+	// if the string begins with a /, then it should not be added to the dirname
+	public String formatInputFilename(String filename) {
+		if(filename.startsWith("/")) return filename;
+		else
+			return dirName + filename;
+	}
+
+	
 	/**
 	 * @param vals - a set of ratios which sum to 1
 	 * @param val - a value between 0 and 1
@@ -1909,7 +1979,7 @@ public class PopulationSynthesis {
 
 			// Open the tracts file
 			FileInputStream fstream = new FileInputStream(
-					socialMediaUsageFilename);
+					formatInputFilename(socialMediaUsageFilename));
 
 			// Convert our input stream to a BufferedReader
 			BufferedReader d = new BufferedReader(

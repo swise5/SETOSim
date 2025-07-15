@@ -1,7 +1,10 @@
 package uk.ac.ucl.SETOSim.utilities;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -90,7 +93,24 @@ public class InputCleaning {
 		return layer;
 	}
 	
+	public static synchronized ArrayList <String> readInTextDataAsLines(String filename, String layerDescription){
+		ArrayList <String> results = new ArrayList <String> ();
+		try {				
+				System.out.print("Reading in " + layerDescription + "from " + filename + "...");
+				FileInputStream fstream = new FileInputStream(filename);
+				BufferedReader rawFile = new BufferedReader(new InputStreamReader(fstream));
+				String s;
+				while((s = rawFile.readLine()) != null) {
+					results.add(s);
+				};
+				rawFile.close();
+				System.out.println("done");
 
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return results;
+	}
 		
 	/**
 	 * Convenient method for incrementing the heatmap

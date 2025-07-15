@@ -1,4 +1,4 @@
-package uk.ac.ucl.SETOSim.myobjects;
+package uk.ac.ucl.SETOSim.utilities;
 
 import org.junit.Test;
 
@@ -6,7 +6,6 @@ import sim.field.geo.GeomVectorField;
 import sim.util.Bag;
 import sim.util.geo.MasonGeometry;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
-import uk.ac.ucl.SETOSim.utilities.InputCleaning;
 
 public class SpatialTests {
 

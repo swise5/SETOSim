@@ -43,7 +43,10 @@ public class Person extends TrafficAgent {
 	enum MovementOutcome { successfulMovement, blockedMovement, routingFailure, unrecoverableRoutingFailure};
 
 	// movement utilities
-	Vehicle myVehicle = null;
+	Vehicle myVehicle = null; // vehicle to which the Person, theoretically, has access
+	Vehicle operatorOf = null; // vehicle the Person is operating
+	Vehicle passengerOf = null;// vehicle in which the Person is currently travelling
+	
 	Coordinate targetDestination = null;
 	GeomVectorField space = null;
 	double enteredRoadSegment = -1;
@@ -113,13 +116,9 @@ public class Person extends TrafficAgent {
 		//if(world.random.nextDouble() < .8)
 		//	this.wayfindingMechanism = 1;
 
-		// establish if the person has a vehicle at their disposal
-		if(world.random.nextDouble() < world.params.likelihoodOfOwningVehicle) {
-			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world);
-		}
 		
 		// set up the speed based on agent age
-		if((age > 1 && age < 12 ) || !world.params.ageSpecificSpeeds) // if age is specific OR ages are turned off!
+		if(!world.params.ageSpecificSpeeds || (age > 1 && age < 12 )) // if age is specific OR ages are turned off!
 			this.speed = Params.speed_pedestrian;
 		else
 			this.speed = Params.speed_elderlyYoung;
@@ -131,14 +130,26 @@ public class Person extends TrafficAgent {
 //			placeOnEdge(position);
 //		mySpatialMentalModel.addEdge(edge); // should add both?
 		
+		// establish if the person has a vehicle at their disposal
+//		if(world.random.nextDouble() < world.params.likelihoodOfOwningVehicle) {
+//			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world);
+//		}
+
 		// create a new Household for the person
-		if(home == null && household == null) // if they don't have a home location, assume initiated at home
+		if(home == null && household == null) { // if they don't have a home location, assume initiated at home
 			myHousehold = new Household(new Coordinate(position.x, position.y));
-		else if(household == null)
+			System.out.println("commuter?");
+		}
+		else if(household == null) {
 			myHousehold = new Household(new Coordinate(home.x, home.y));
+		}
 		else
 			myHousehold = household;
 
+		if(myHousehold.members.size() == 0)
+			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world); // each household has a car
+
+		
 		// set up the workspace if needed
 		if(work != null)
 			this.work = new Coordinate(work.x, work.y);//(Coordinate)work.clone();
@@ -155,6 +166,9 @@ public class Person extends TrafficAgent {
 		
 		double time = state.schedule.getTime();		
 		double delta = Double.MAX_VALUE;
+		
+		if(this.isPassengerOfVehicle())
+			return; // don't do anything while a passenger
 		
 		// check for own home
 		if(this.evacuationRecord == null && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
@@ -201,6 +215,8 @@ public class Person extends TrafficAgent {
 	}
 	
 	boolean shouldIEvacuate() {
+		if(world.params.tsunami) // tsunami is the big boss
+			return true;
 		if(myHousehold != null && myHousehold.inHazardZone) // my house is flooded
 			return true;
 		else if(this.inundated) // I'm in the middle of a flood
@@ -502,11 +518,16 @@ public class Person extends TrafficAgent {
 	 */
 	public MovementOutcome headFor(Coordinate place) {
 
-		//TODO: MUST INCORPORATE MORE ROAD NETWORK STUFF
+		// some basic error checking
+		
+		//
+		// can't go somewhere undefined
+		//
 		if(place == null){
 			System.out.println("ERROR: can't move toward nonexistant location");
 			return MovementOutcome.unrecoverableRoutingFailure;
 		}
+
 		//
 		// if we're trying to go somewhere outside the station, reroute to the station and go through it
 		//
@@ -529,6 +550,17 @@ public class Person extends TrafficAgent {
 			targetDestination = place;
 			return routableThroughStation;
 			
+		}
+		
+		// a few more checks to make life easier
+		double distanceFromCurrentPosition = place.distance(this.geometry.getCoordinate());
+
+		//
+		// if we're already in the place...great! No need to route our way there!
+		//
+		if(distanceFromCurrentPosition < world.params.resolution) {
+			path = new ArrayList <Edge> ();
+			return MovementOutcome.successfulMovement;
 		}
 		
 		// first, record from where the agent is starting
@@ -651,6 +683,12 @@ public class Person extends TrafficAgent {
 			}
 			
 		}
+		
+		// if the very first edge is closed, we absolutely cannot proceed
+		Edge myFinalEdge = path.get(path.size() - 1);
+		if( ((MasonGeometry)myFinalEdge.info).getStringAttribute("open").equals("CLOSED"))
+			return MovementOutcome.unrecoverableRoutingFailure;
+
 
 		// set up the coordinates
 		this.startIndex = segment.getStartIndex();
@@ -704,22 +742,39 @@ public class Person extends TrafficAgent {
 	
 	public int navigate(double resolution){
 		if(path != null){
-			double time = 1;//speed;
+			
+			if(!this.isOperatingVehicle() && this.myVehicle != null && this.myVehicle.geometry.distance(this.geometry) < world.params.resolution)
+				myVehicle.setOperator(this);
+			
+			double time = 1;
 			while(path != null && time > 0){
+				
+/*				// if the Person is operating a vehicle, it must be turned on for them to move it
+				if(operatorOf != null && !operatorOf.inMotion())
+					operatorOf.startMovement();
+*/				
 				time = move(time, speed, resolution);
 				if(segment != null)
 					world.updateRoadUseage(((MasonGeometry)edge.info).getStringAttribute("full_id"));
 				//mySpatialMentalModel.addEdge(edge);
 				
 				// they've arrived at a train station, which is their destination
-				if(time >= 0 && finishedPath() && node.hasAttribute("station") && targetDestination.distance(world.notInSimulation) < resolution) {
+				if(time >= 0 && finishedPath() && node != null && node.hasAttribute("station") && targetDestination.distance(world.notInSimulation) < resolution) {
+					
+					// if we're in a vehicle, stop it!!
+					//if(operatorOf != null && operatorOf.inMotion()) stopVehicle();
+						
 					updateLoc(world.notInSimulation);
 					return 2; // they've successfully left the area of the simulation
 				}
 			}
 			
-			if(segment != null)
-				updateLoc(segment.extractPoint(currentIndex));				
+			if(segment != null) {
+				Coordinate newLoc = segment.extractPoint(currentIndex); 
+				updateLoc(newLoc);
+				if(operatorOf != null)
+					operatorOf.moveTo(newLoc);
+			}
 
 			if(time < 0){
 				return -1;
@@ -728,6 +783,16 @@ public class Person extends TrafficAgent {
 				return 1;
 		}
 		return -1;
+	}
+	
+	public void stopVehicle() {
+		
+			operatorOf.stopMovement();
+			operatorOf.removeAllPassengers();
+			operatorOf.removeOperator();
+			operatorOf = null;
+		
+
 	}
 	
 	public void scheduleArrival(GeoNode entryPoint, double time) {
@@ -751,11 +816,9 @@ public class Person extends TrafficAgent {
 	//
 	
 	public boolean evacuatingCompleted() { return this.evacuationRecord.endsWith("DONE"); }
-	//public boolean evacuatingCompleted(){ return evacuatingCompleted; }
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
-//	public int getEvacuating(){ return this.evacuating; }
 	
 	//public boolean isEvacuating() { return !this.evacuatingCompleted && this.evacuatingTime > 0;
 			/*!
@@ -783,4 +846,34 @@ public class Person extends TrafficAgent {
 	public GeoNode getNode() { return node; }
 	public String getEvacuationRecord() { return this.evacuationRecord; }
 
+	public boolean isOperatingVehicle() { return this.operatorOf != null; }
+	public boolean isPassengerOfVehicle() { return this.passengerOf != null; }
+	public boolean isInVehicle() { return isOperatingVehicle() || isPassengerOfVehicle(); }
+	
+	public void stopOperatingVehicle() {
+		
+		// make sure the Person is actually operating a vehicle
+		if(this.operatorOf == null) {
+			System.out.println("ERROR: Person " + this.myID + " is not operating a vehicle, and so cannot stop operating a vehicle");
+			return;
+		}
+		
+		// set all of the passengers to reset themselves!
+		for(Person p: this.operatorOf.getPassengers())
+			world.schedule.scheduleOnce(p);
+			
+		// throw everyone out!
+		this.operatorOf.removeAllPassengers();
+
+		// stop operating it!
+		this.operatorOf.removeOperator();
+		
+	}
+	
+	public void forceUpdateLoc() {
+		if(operatorOf != null)
+			updateLoc(operatorOf.geometry.getCoordinate());
+		else if(passengerOf != null)
+			updateLoc(passengerOf.geometry.getCoordinate());
+	}
 }
