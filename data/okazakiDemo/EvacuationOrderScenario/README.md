@@ -43,10 +43,10 @@
     - conservative / safe side scenario
     - Scenario where Level 2 (L2) is predicted and evacuation orders are issued accordingly, but Level 1 (L1) inundation actually occurs.
     - 10% of voluntary evacuees
-- L1-L2-10-B.csv
+- L1-L2-00-B.csv
     - non-conservative / unsafe side scenario
     - Scenario where Level 1 (L1) is predicted and evacuation orders are issued accordingly, but Level 2 (L2) inundation actually occurs.
-    - 10% of voluntary evacuees
+    - There is no trigger for voluntary evacuation, as the rainfall-based trigger is not activated under the L1 prediction.
     - Additional evacuation order issued for residents near the Otogawa River.
 - L2-L1-10-B.csv
     - conservative / safe side scenario
@@ -55,11 +55,11 @@
     - Additional evacuation order issued for residents near the Otogawa River.
 
 ## Evacuation order area
-- Data name: EvacuationOrderArea.shp
+- file name: EvacuationOrderArea.shp
 - The data can be merged with XX-YY-ZZ-*.csv file by key = 'area_ID'(many-to-many matching)
 - area_ID
-- Evacuation area is separated into two areas:
-    - 002: Otogawa area
-    - 001: Others
+    - Evacuation area is separated into two areas:
+        - 002: Otogawa area
+        - 001: Others
 
 
