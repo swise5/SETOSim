@@ -92,7 +92,7 @@ public class TakamatsuGUI extends GUIState {
 		TakamatsuSim world = (TakamatsuSim) state;
 		water.setField(world.waterLayer);
 		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
-		//water.setImmutableField(true);
+		water.setImmutableField(true);
 		
 		roads.setField(world.roadLayer);
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(180,180,180), false));
@@ -175,7 +175,7 @@ public class TakamatsuGUI extends GUIState {
 		        	// specify the timestep here
 		        	Date startDate;
 					try {
-						startDate = ft.parse("00:00 GMT");
+						startDate = ft.parse("00:00 JST");
 				        Date time = new Date((int)state.schedule.getTime() * 60000 + startDate.getTime());
 				        s = ft.format(time);	
 					} catch (ParseException e) {

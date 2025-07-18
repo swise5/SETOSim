@@ -31,6 +31,7 @@ public class Person extends TrafficAgent {
 
 	TakamatsuSim world;
 	String myID;
+	int hash;
 	
 	Household myHousehold;
 	Coordinate work;
@@ -96,7 +97,8 @@ public class Person extends TrafficAgent {
 		
 		this.promptNeighbourEvacuations = world.params.evacuationPolicy_neighbours;
 		
-		this.myID = id;		
+		this.myID = id;	
+		this.hash = id.hashCode();
 		this.age = age;
 		this.sex = sex;
 
@@ -146,7 +148,7 @@ public class Person extends TrafficAgent {
 		else
 			myHousehold = household;
 
-		if(myHousehold.members.size() == 0)
+		if(world.params.universalVehicles && myHousehold.members.size() == 0)
 			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world); // each household has a car
 
 		
@@ -169,6 +171,9 @@ public class Person extends TrafficAgent {
 		
 		if(this.isPassengerOfVehicle())
 			return; // don't do anything while a passenger
+		else if(this.evacuatingCompleted())
+			return;
+		
 		
 		// check for own home
 		if(this.evacuationRecord == null && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
@@ -815,7 +820,7 @@ public class Person extends TrafficAgent {
 	// GETTERS AND SETTERS
 	//
 	
-	public boolean evacuatingCompleted() { return this.evacuationRecord.endsWith("DONE"); }
+	public boolean evacuatingCompleted() {return this.evacuationRecord != null && evacuationRecord.endsWith("DONE");}
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
@@ -876,4 +881,7 @@ public class Person extends TrafficAgent {
 		else if(passengerOf != null)
 			updateLoc(passengerOf.geometry.getCoordinate());
 	}
+
+	
+	public int hashCode(){ return hash; }
 }

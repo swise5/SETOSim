@@ -216,7 +216,7 @@ public class PersonUtilities {
 			HashMap <String, MasonGeometry> buildingNames = new HashMap <String, MasonGeometry> ();
 			for(Object o: world.buildingLayer.getGeometries()){
 				MasonGeometry mg = (MasonGeometry) o;
-				buildingNames.put(mg.getStringAttribute( PopulationSynthesis.buildingUniqueCodeColname ), mg);
+				buildingNames.put(mg.getStringAttribute( world.params.buildingUniqueCodeColname ), mg);
 				Coordinate c = world.snapPointToRoadNetwork(mg.geometry.getCoordinate());
 				mg.addAttribute("entrance", c);
 			}

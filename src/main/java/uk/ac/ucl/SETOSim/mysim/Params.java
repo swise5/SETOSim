@@ -21,8 +21,8 @@ public class Params {
 	
 	// SPACE
 	
-	public int grid_width = 1000;
-	public int grid_height = 800;
+	public int grid_width = 800;
+	public int grid_height = 400;
 	
 	// spatial granularity of the simulation (fiddle to merge nodes into one another)
 	public static double resolution = 1; 
@@ -84,21 +84,24 @@ public class Params {
 	
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	public String dirName = "data/okazakiDemo/";//ritsurinDemo/";
+	public String dirName = "data/takamatsuTsunamiDemo/";//okazakiDemo/";//ritsurinDemo/";
 		
-	public static String agentFilename = "synthPop_kagawaHHs.txt";//"dummyPop.txt";
+	public static String agentFilename = "synthPop_hh.txt";//"dummyPop.txt";
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
-	public String floodedFilename = "simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
-	public String waterFilename = "waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
-	public String sheltersFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp";
-	public String buildingsFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";//buildings10m.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
-	public String roadsFilename = "simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
+	public String floodedFilename = "flooded_reproj.shp";//"simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
+	public String waterFilename = "water.shp";//"waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
+	public String sheltersFilename = "sheltersWithParking.shp";//"/Users/swise/Projects/hitomi/data/OkazakiABM/01_Shelter_OkazakiOpenData/sheltersWithParking.shp";
+	public String buildingsFilename = "buildings_reproj.shp";//"/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";//buildings10m.shp";//"uglyHouses.shp";//"defaultRitsurinFiles/Ritsurin.shp";
+	public String roadsFilename = "roads_simple.shp";//"simpleRoads_withInundation.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";//"defaultRitsurinFiles/RitsurinRoads.shp";
 	public String stationFilename = ""; //"trainStationsWithPassengers.shp";
-	public String evacuationAreasFilename = "EvacuationOrderScenario/EvacuationOrderArea_reproj.shp";//"evacZonesInMeters.shp";
+	public String evacuationAreasFilename = "evac_areas.shp";//"EvacuationOrderScenario/EvacuationOrderArea_reproj.shp";//"evacZonesInMeters.shp";
 	public String evacuationAreaIDColumnName = "areaID";
-	public String evacuationScenarioFilename = "EvacuationOrderScenario/L2-L1-10-N.csv"; // "" - if no timing info!
+	public String evacuationScenarioFilename = "";//"EvacuationOrderScenario/L2-L1-10-N.csv"; // "" - if no timing info!
+	
+	public String buildingUniqueCodeColname = "id_text";
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
+	public Boolean universalVehicles = false;
 /*
     // Woden case
 	public String sheltersFilename = "bushfireWodenShelter.shp";

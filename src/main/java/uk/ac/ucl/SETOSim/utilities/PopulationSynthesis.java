@@ -44,17 +44,17 @@ import ec.util.MersenneTwisterFast;
  */
 public class PopulationSynthesis {
 	
-	String dirName = "/Users/swise/workspace/takamatsu/data/okazakiDemo/";
+	String dirName = "data/takamatsuTsunamiDemo/";;//"/Users/swise/workspace/takamatsu/data/okazakiDemo/";
 
-	String demoFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/02_Population/pop_census2020_okazaki.shp";//"elderDemo/TakamatsuEstimated10YearDemo.tsv";//"TakamatsuDemoBasic.tsv";
-	String roadsFilename = "simpleRoads.shp";//"bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
+	String demoFilename = "TakamatsuDemoBasic.tsv";//"elderDemo/TakamatsuEstimated10YearDemo.tsv";////"/Users/swise/Projects/hitomi/data/OkazakiABM/02_Population/pop_census2020_okazaki.shp";//
+	String roadsFilename = "roads_simple.shp";//"simpleRoads.shp";//"bushfireWodenRoads.shp";//"roads.shp";//"ACTGOV_ROAD_CENTRELINES_-8699904174011627171/ACTGOV_ROAD_CENTRELINES.shp";
 	String weightedRoadAttribute = "highway";//"HIERARCHY";
 	String [] roadTypesToBuildHouses = {"!motorway"};//{"RESIDENTIAL", "house"};
 	
-	public static String buildingUniqueCodeColname = "gml_id";//"fid";
+	public static String buildingUniqueCodeColname = "id_text";//"gml_id";//"fid";
 	
 	
-	String buildingsFilename = "/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";
+	String buildingsFilename = "buildings_reproj.shp";//"/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";
 
 	String householdsFilename = "/Users/swise/Projects/hitomi/data/KagawaHouseholdsBasic.tsv";//"OkazakiHouseholdsBasic.tsv";
 

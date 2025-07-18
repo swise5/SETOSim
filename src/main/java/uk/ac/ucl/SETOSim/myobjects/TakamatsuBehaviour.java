@@ -461,7 +461,7 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 
 				Person p = (Person) s;
 				p.removeFromEdge();
-				p.evacuationRecord += ",FINISH_EVAC:" + (int)time;
+				p.evacuationRecord += ",FINISH_EVAC:" + (int)time + ",DONE";
 				
 //				if(p.evacuatingTime > 0)
 //					p.evacuatingTime = time - p.evacuatingTime;

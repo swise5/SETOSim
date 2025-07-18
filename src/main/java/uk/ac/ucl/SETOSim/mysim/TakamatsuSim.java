@@ -341,6 +341,10 @@ public class TakamatsuSim extends SimState {
 	public void scheduleFlood() {
 		
 		ArrayList <Integer> roadClosureTimes = new ArrayList <Integer> (roadClosures.keySet());
+		
+		if(roadClosureTimes == null || roadClosureTimes.size() == 0)
+			return;
+		
 		Collections.sort(roadClosureTimes);
 		int maxTime = roadClosureTimes.get(roadClosureTimes.size() - 1);
 		
@@ -440,7 +444,7 @@ public class TakamatsuSim extends SimState {
 		//    1. denoted by time (if the geometries have "time" parameters
 		//    2. denoted by area, with an "optional" evac order 
 
-		if( params.evacuationScenarioFilename != null ) {
+		if( params.evacuationScenarioFilename != null && params.evacuationScenarioFilename.length() > 0) {
 			
 			// first, pull out all of the areas by name so they can be accessed easily
 			HashMap <String, MasonGeometry> evacAreaNameMapping = new HashMap <String, MasonGeometry> ();
@@ -492,9 +496,9 @@ public class TakamatsuSim extends SimState {
 				timeAsInt = (int)(Integer.parseInt(evacTimeStr[0]) * params.ticks_per_hour + Integer.parseInt(evacTimeStr[1]));
 			}
 			else {
-				double depthOfInundation = mg.getDoubleAttribute(params.roadInundationColumnName);
-				if(depthOfInundation <= .1)
-					continue; // this road is not a threat
+				//double depthOfInundation = mg.getDoubleAttribute(params.roadInundationColumnName);
+				//if(depthOfInundation <= .1)
+				//	continue; // this road is not a threat
 				timeAsInt = params.forecastArrivalTime - params.forecastNoticePeriod; // otherwise, it will inundate at the time of the forecast!
 			}
 			
@@ -555,13 +559,17 @@ public class TakamatsuSim extends SimState {
 			// make sure everyone in the inundated area knows about it!
 			for(Person a: peopleImpacted) {
 				
-				a.setInundated(true); // they're all inundated
-
-				// they might try to do something about it
-				if(arg0.random.nextDouble() > percentageCompliance)
+				if(a.evacuatingCompleted()) // don't update people who are already in shelters
 					continue;
 				
-				arg0.schedule.scheduleOnce(a);
+				// if they meet the criteria, schedule them to find out! 
+				if((elderly && a.getAge() > 12) ||
+				   (minors && a.getAge() < 4) ||
+				   (arg0.random.nextDouble() <= percentageCompliance)) {
+					a.setInundated(true); // they're all inundated
+					arg0.schedule.scheduleOnce(a);
+				}
+				
 			}
 
 			

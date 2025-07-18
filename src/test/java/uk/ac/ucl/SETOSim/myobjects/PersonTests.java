@@ -32,6 +32,12 @@ public class PersonTests {
 			
 	}
 
+	
+	public static Person createDummyPerson(TakamatsuSim world, int id, Coordinate startLocation, int age) {
+		Person p = createDummyPerson(world, id, startLocation, null, null);
+		p.age = age;
+		return p;
+	}
 	/************************ END UTILITIES FOR TESTING *************************************/
 
 
