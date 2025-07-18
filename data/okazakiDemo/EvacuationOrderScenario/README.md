@@ -15,6 +15,7 @@
     - 001: Others
 - time
     - the timing when the evacuation instruction status changes
+    - Date&time format: YYYY-MM-DD hh:mm (e.g. 2019-10-12 05:00)
 - voluntary
     - percentage of voluntary evacuees
         - 0.1: 10%
