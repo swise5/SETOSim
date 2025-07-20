@@ -1,1 +1,0 @@
-ID	age	status	evacuatingRecord	flooded	x_home	y_home	x_loc	y_loc

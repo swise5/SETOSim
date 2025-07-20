@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -25,6 +26,26 @@ public class EvacuationOrderTests {
 	public static String evacuationAreasTimed = "simplisticEvacuationAreasTimed.shp";
 	public static String evacuationScenarioName = "simplisticEvacuationScenario.csv";
 	public static String evacuationScenarioColname = "name";
+	
+	public static HashMap <String, String> evacRecordParser(String record){
+		
+		if(record == null) 
+			return new HashMap <String, String> ();
+		
+		HashMap <String, String> result = new HashMap <String, String>();
+		
+		String [] flagsAndValues = record.split(",");
+		for(String s: flagsAndValues) {
+			String [] bits = s.split(":");
+			try {
+				result.put(bits[0], bits[1]);				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return result;
+	}
 
 	public TakamatsuSim setupEvacuationOrderWorld(String myEvacAreas) {
 		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, roadNames, 1);
@@ -56,9 +77,9 @@ public class EvacuationOrderTests {
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
 		
 		// create agents
-		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0));
+		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0), null);
 		p1.setActivityNode(world.behaviourFramework.getEntryPoint());
-		Person p2 = PersonTests.createDummyPerson(world, 2, new Coordinate(10, 0));
+		Person p2 = PersonTests.createDummyPerson(world, 2, new Coordinate(10, 0), null);
 		p2.setActivityNode(world.behaviourFramework.getEntryPoint());
 		
 		// SUT
@@ -67,11 +88,13 @@ public class EvacuationOrderTests {
 		
 		// TESTING
 		
+		String p1_record = p1.getEvacuationRecord();
 		assertEquals(p1.getActivityNode().getTitle(), "Evacuated");
 		assertEquals(p2.getActivityNode().getTitle(), "Home");
-		assert(p1.getEvacuationRecord().contains("START:"));
-		assert(p1.getEvacuationRecord().contains("ENTER_SHELTER"));
-		assert(p1.getEvacuationRecord().contains("FINISH_EVAC"));
+		assert(p1_record.contains("BEGIN_EVACUATING:"));
+		assert(p1_record.contains("ENTER_SHELTER"));
+		assert(p1_record.contains("FINISH_EVAC"));
+		assertEquals(p2.getEvacuationRecord(), null);
 	}
 	
 	@Test
@@ -98,7 +121,7 @@ public class EvacuationOrderTests {
 		
 		assertEquals(p1.getActivityNode().getTitle(), "Evacuated");
 		assertEquals(p2.getActivityNode().getTitle(), "Home");
-		assert(p1.getEvacuationRecord().contains("START:"));
+		assert(p1.getEvacuationRecord().contains("BEGIN_EVACUATING:"));
 		assert(p1.getEvacuationRecord().contains("ENTER_SHELTER"));
 		assert(p1.getEvacuationRecord().contains("FINISH_EVAC"));
 	}
@@ -127,14 +150,26 @@ public class EvacuationOrderTests {
 		
 		// SUT
 		world.scheduleEvacuationOrders();
-		SchedulingTests.runScheduleUntilTime(world, 500);
+		SchedulingTests.runScheduleUntilTime(world, 600); // 10 hours
 		
-		// TESTING		
+		// TESTING
+		HashMap <String, String> p1_record = evacRecordParser(p1.getEvacuationRecord());
+		HashMap <String, String> p2_record = evacRecordParser(p2.getEvacuationRecord());
+		
+		// prompted correctly?
+		assertEquals(p1_record.get("EVAC_ORDER_PROMPTED_AT"), "120"); // it's a string
+		assertEquals(p2_record.get("EVAC_ORDER_PROMPTED_AT"), "180"); // it's a string
+		
+		// correct final activity?
 		assertEquals(p1.getActivityNode().getTitle(), "Evacuated");
 		assertEquals(p2.getActivityNode().getTitle(), "Evacuated");
-		assert(p1.getEvacuationRecord().contains("START:"));
-		assert(p1.getEvacuationRecord().contains("ENTER_SHELTER"));
-		assert(p1.getEvacuationRecord().contains("FINISH_EVAC"));
+		
+		// correct actions along the way?
+		assert(p1_record.containsKey("ENTER_SHELTER"));		
+		assert(p1_record.containsKey("FINISH_EVAC"));
+		assert(p2_record.containsKey("ENTER_SHELTER"));		
+		assert(p2_record.containsKey("FINISH_EVAC"));
+
 	}
 	
 }

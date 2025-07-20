@@ -139,14 +139,16 @@ public class Person extends TrafficAgent {
 
 		// create a new Household for the person
 		if(home == null && household == null) { // if they don't have a home location, assume initiated at home
-			myHousehold = new Household(new Coordinate(position.x, position.y));
+			myHousehold = new Household("HH_" + world.pullNextHouseholdID(), new Coordinate(position.x, position.y), world.householdsLayer);
 			System.out.println("commuter?");
 		}
 		else if(household == null) {
-			myHousehold = new Household(new Coordinate(home.x, home.y));
+			myHousehold = new Household("HH_" + world.pullNextHouseholdID(), new Coordinate(home.x, home.y), world.householdsLayer);
 		}
 		else
 			myHousehold = household;
+		
+		myHousehold.addMember(this);
 
 		if(world.params.universalVehicles && myHousehold.members.size() == 0)
 			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world); // each household has a car
@@ -177,7 +179,7 @@ public class Person extends TrafficAgent {
 		
 		// check for own home
 		if(this.evacuationRecord == null && shouldIEvacuate()) {//state.random.nextDouble() < assessRisk(this.myHousehold, time)){			
-			beginEvacuating();
+			beginEvacuating(time);
 			return;
 		}
 	//	else if(isEvacuating()) {
@@ -216,7 +218,7 @@ public class Person extends TrafficAgent {
 		}
 		
 	*/	
-		state.schedule.scheduleOnce(time+delta, this);
+		state.schedule.scheduleOnce((int)(time+delta), this);
 	}
 	
 	boolean shouldIEvacuate() {
@@ -395,15 +397,17 @@ public class Person extends TrafficAgent {
 		return 1;
 	}*/
 	
-	public void beginEvacuating() {
+	public boolean beginEvacuating(double time) {
 		
 /*		if(evacuatingTime < 0) {
 			evacuatingTime = world.schedule.getTime();
 			world.numAttemptingEvac++;
 		}
 */
-		if(this.evacuationRecord == null)
-			this.evacuationRecord = "START:" + (int)world.schedule.getTime();
+		if( evacuationRecord != null && evacuationRecord.contains("BEGIN_EVACUATING"))
+			return false;
+		
+		updateEvacRecord("BEGIN_EVACUATING:"+time);
 
 		if(world.params.tsunami) {
 			setActivityNode(world.behaviourFramework.evacuatingNode);
@@ -435,6 +439,8 @@ public class Person extends TrafficAgent {
 		path = null;
 		
 		world.schedule.scheduleOnce(this);
+		
+		return true;
 	}
 	
 	void promptNeighbours() {
@@ -443,7 +449,7 @@ public class Person extends TrafficAgent {
 		if(s <= 1) return; // no one nearby!
 		Person p = (Person) n.get(world.random.nextInt(s));
 		if(p != this)
-			p.beginEvacuating();		
+			p.beginEvacuating(world.schedule.getTime());
 	}
 	
 	public static double rayleighDistrib(double unif){
@@ -452,6 +458,13 @@ public class Person extends TrafficAgent {
 	}
 	
 	public double assessRisk(Household target, double time){
+		
+		String recordStub = "ASSESS_RISK:" + time;
+		if(this.evacuationRecord == null)
+			evacuationRecord = recordStub;
+		else
+			evacuationRecord += "," + recordStub;
+		
 		
 		if(world.params.tsunami && time > world.params.forecastArrivalTime)
 			return 10; // definitely at risk, if the earthquake has already happened!
@@ -715,6 +728,7 @@ public class Person extends TrafficAgent {
 		else if(((MasonGeometry)edge.info).getStringAttribute("open").equals("CLOSED")){
 			if(world.verbose)
 				System.out.println("\tINIT_ERROR: edge is closed");
+			updateEvacRecord("ROAD_CLOSURE_AT_TIME" + (int) world.schedule.getTime());
 			edge = null; // reset
 			return -2;
 		}
@@ -837,14 +851,28 @@ public class Person extends TrafficAgent {
 	
 	public void setActivityNode(BehaviourNode bn){ this.currentAction = bn;}
 	public BehaviourNode getActivityNode(){ return this.currentAction;}
-	public boolean finishedPath(){ return path == null; }
+	public boolean finishedPath(){
+		if(path == null) return true;
+		else if(path.size() == 0 && this.geometry.getCoordinate().distance(this.goalPoint) < world.params.resolution)
+			return true;
+		return false; 
+	}
 	public ArrayList <Edge> getPath(){ return path;}
 	
 	public void setSpeed(double d) { this.speed = d; }
 	public double getSpeed() { return this.speed; }
 	
 	public void setWorkLocation(Coordinate c){ this.work = (Coordinate) c.clone(); }
-	public void setInundated(boolean isInundated) { this.inundated = isInundated;}
+	public void setInundated(boolean isInundated, double time) { 
+		this.inundated = isInundated;
+		
+		if(this.evacuationRecord == null)
+			this.evacuationRecord = "";
+		else
+			this.evacuationRecord += ",";
+		this.evacuationRecord += "SET_TO_INUNDATED:" + (int) time;
+		
+	}
 //	public EvacuationPlan getEvacuationPlan(){ return myPlan; }
 	
 	public boolean hasPath() { return path != null; }
@@ -882,6 +910,17 @@ public class Person extends TrafficAgent {
 			updateLoc(passengerOf.geometry.getCoordinate());
 	}
 
+	public void updateEvacRecord(String s) {
+		if(this.evacuationRecord == null)
+			this.evacuationRecord = "";
+		else
+			this.evacuationRecord += ",";
+		this.evacuationRecord += s;
+	}
+	
+	public void updateEvacRecord(String flag, double time) {
+		updateEvacRecord(flag + ":" + (int) time);
+	}
 	
 	public int hashCode(){ return hash; }
 }

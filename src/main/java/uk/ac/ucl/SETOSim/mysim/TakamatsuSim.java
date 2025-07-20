@@ -83,6 +83,7 @@ public class TakamatsuSim extends SimState {
 	public GeomVectorField namesLayer;
 
 	public ArrayList <Person> agents = new ArrayList <Person> ();
+	public int household_index = 0;
 
 	// transport
 	public GeomVectorField networkLayer;
@@ -356,6 +357,7 @@ public class TakamatsuSim extends SimState {
 			public void step(SimState arg0) {
 				
 				if(floodIndex < 0) return;
+				double time = arg0.schedule.getTime();
 				
 				HashSet <Household> householdsImpacted = new HashSet <Household> ();
 				HashSet <Person> peopleImpacted = new HashSet <Person> ();
@@ -400,7 +402,8 @@ public class TakamatsuSim extends SimState {
 				
 				// make sure everyone currenly inundated checks in
 				for(Person p: peopleImpacted) {
-					p.setInundated(true);
+					p.setInundated(true, time);
+					p.updateEvacRecord("FLOOD_PROMPTED_AT:" + (int) time);
 					//p.beginEvacuating((TakamatsuSim) arg0); 
 					arg0.schedule.scheduleOnce(p);
 				}
@@ -461,24 +464,32 @@ public class TakamatsuSim extends SimState {
 			// data parser
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 			
+			// headers
+			HashMap <String, Integer> columnsToIndex = new HashMap <String, Integer> ();
+			Integer index = 0;
+			for(String s: events.get(0).split(","))
+				columnsToIndex.put(s.strip().toLowerCase(), index++);
+			int areaNameIndex = columnsToIndex.get("name"),
+					rawTimeIndex = columnsToIndex.get("time"),
+					elderlyIndex = columnsToIndex.get("elderly"),
+					allPeopleIndex = columnsToIndex.get("all"),
+					floodTimeIndex = columnsToIndex.get("flooding");
+			
 			for(int i = 1; i < events.size(); i++) { // ignore the header
 				String [] bits = events.get(i).split(",");
-				String areaName = bits[0], rawTime = bits[1], dependents = bits[3], others = bits[4], floodStart = bits[5];
-				double voluntaryPerc = Double.parseDouble(bits[2]);
 				
-				double parsedTime = convertTimeToTicks(rawTime, formatter);
+				String areaName = bits[areaNameIndex], 
+						rawTime = bits[rawTimeIndex], 
+						elderly = bits[elderlyIndex], 
+						allPeople = bits[allPeopleIndex], 
+						flooding = bits[floodTimeIndex];
 				
-				boolean elderly = dependents.equals("1"),
-						minors = false,
-						all = others.equals("1");
+				double parsedTime = convertTimeToTicks(rawTime, formatter),
+						elderlyPercent = Double.parseDouble(elderly),
+						allPercent = Double.parseDouble(allPeople);
 
 				// set up with the correct parameters
-				AreaEvacuater scheduledEvac;
-				if(all)
-					scheduledEvac = new AreaEvacuater(voluntaryPerc, evacAreaNameMapping.get(areaName).geometry);
-				else
-					scheduledEvac = new AreaEvacuater(voluntaryPerc, evacAreaNameMapping.get(areaName).geometry, elderly, minors);
-				
+				AreaEvacuater scheduledEvac = new AreaEvacuater(evacAreaNameMapping.get(areaName).geometry, elderlyPercent, allPercent);				
 				schedule.scheduleOnce(parsedTime, scheduledEvac);
 			}
 			
@@ -503,36 +514,35 @@ public class TakamatsuSim extends SimState {
 			}
 			
 			
-			AreaEvacuater scheduledEvac = new AreaEvacuater(params.compliance, mg.geometry);
+			AreaEvacuater scheduledEvac = new AreaEvacuater(mg.geometry, 0, params.compliance);
 			schedule.scheduleOnce(timeAsInt, scheduledEvac);
 			
 			// sometimes there will be a voluntary evacuation before the mandatory one - in that case, schedule
 			// a mandatory evacuation to begin an hour after the guidance!
-			if(params.compliance < 1) {
+		/*	if(params.compliance < 1) {
 				AreaEvacuater mandatoryEvac = new AreaEvacuater(1, mg.geometry);
 				schedule.scheduleOnce(timeAsInt + params.ticks_per_hour, mandatoryEvac);
 				
-			}
+			}*/
 		}
 
 	}
 	
 	public class AreaEvacuater implements Steppable {
 
-		double percentageCompliance = 1.;
 		Geometry g;
-		boolean elderly = false;
-		boolean minors = false;
+		double elderly = 0.;
+		double minors = 0.;
+		double all = 0.;
 		
-		public AreaEvacuater(double compliance, Geometry geom) {
-			this.percentageCompliance = compliance;
+		public AreaEvacuater(Geometry geom) {
 			this.g = geom;
 		}
 		
-		public AreaEvacuater(double compliance, Geometry geom, boolean elderly, boolean minors) {
-			this(compliance, geom);
+		public AreaEvacuater(Geometry geom, double elderly, double all) {
+			this(geom);
 			this.elderly = elderly;
-			this.minors = minors;
+			this.all = all;
 		}
 		
 		@Override
@@ -541,18 +551,29 @@ public class TakamatsuSim extends SimState {
 			// pull out which households and persons are impacted
 			HashSet <Household> householdsImpacted = new HashSet <Household> ();
 			HashSet <Person> peopleImpacted = new HashSet <Person> ();
+			
+			double time = arg0.schedule.getTime();
 
 			// update all households
 			Bag b = householdsLayer.getObjectsWithinDistance(g, params.hazardThresholdDistance);
 			householdsImpacted.addAll(b);
 			
-			boolean allGroups = !(elderly || minors); // if it's neither case, all should evacuate
-			for(Household h: householdsImpacted)
-				if( allGroups || 
-						(this.elderly && h.hasElderly()) || // if there are elderly people 
-						(this.minors && h.hasMinors()))     // if there are minors
-				h.setInHazardZone(true);
+			boolean evacAll = all > 0, evacElderly = elderly > 0, evacMinors = minors > 0;
+			
+			for(Household h: householdsImpacted) {
+				double val = arg0.random.nextDouble();
+				if( (evacAll && val < all) || 
+					(evacElderly && h.hasElderly() && val < elderly)) {
 
+					h.setInHazardZone(true);
+					for(Person m: h.getMembers()) {
+						boolean prompted = m.beginEvacuating(time);
+						if(prompted) m.updateEvacRecord("EVAC_ORDER_PROMPTED_AT", time);
+					}
+				}
+			}
+
+			/*
 			Bag p = agentsLayer.getObjectsWithinDistance(g, params.hazardThresholdDistance);
 			peopleImpacted.addAll(p);
 			
@@ -566,14 +587,16 @@ public class TakamatsuSim extends SimState {
 				if((elderly && a.getAge() > 12) ||
 				   (minors && a.getAge() < 4) ||
 				   (arg0.random.nextDouble() <= percentageCompliance)) {
-					a.setInundated(true); // they're all inundated
+					a.setInundated(true, time); // they're all inundated
+					a.updateEvacRecord("EVAC_ORDER_PROMPTED_AT:" + (int) time);
 					arg0.schedule.scheduleOnce(a);
 				}
 				
 			}
 
-			
+		*/	
 		}
+		
 		
 	}
 	
@@ -1007,8 +1030,8 @@ public class TakamatsuSim extends SimState {
 				System.out.print(myTime + "\t");
 			*/	
 				record_info.write(myID + "\t" +  a.getAge() + "\t" + status + "\t" + a.getEvacuationRecord() + "\t"
-						+ inWater + "\t" + homeCoord.x + "\t" + homeCoord.y + 
-						"\t" + locCoord.x + "\t" + locCoord.y //+ "\t" + dependent + "\t" + dependentOf + "\t" + a.turnedAwayFromShelterCount
+						+ inWater + "\t" + (int) homeCoord.x + "\t" + (int)  homeCoord.y + 
+						"\t" + (int) locCoord.x + "\t" + (int) locCoord.y //+ "\t" + dependent + "\t" + dependentOf + "\t" + a.turnedAwayFromShelterCount
 						+ "\n");//a.getHistory() + "\n");
 				
 				
@@ -1181,4 +1204,6 @@ public class TakamatsuSim extends SimState {
 		params.sheltersFilename = "tsunami/bigBuildings.shp";
 		params.floodedFilename = "tsunami/emptyFloodingFile.shp";
 	}
+	
+	public int pullNextHouseholdID() { return this.household_index++; }
 }

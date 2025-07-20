@@ -250,8 +250,7 @@ public class PersonUtilities {
 				AttributeValue myEntrance = (AttributeValue) myHomeBuilding.getAttribute("entrance");
 				Coordinate homeCoord = (Coordinate) myEntrance.getValue();//myHomeBuilding.geometry.getCoordinate();
 				Coordinate homeCoordCopy = new Coordinate(homeCoord.x, homeCoord.y, homeCoord.z);
-				Household h = new Household(homeCoordCopy);
-				householdLayer.addGeometry(h);
+				Household h = new Household("HH_" + world.pullNextHouseholdID(), homeCoordCopy, householdLayer);
 
 				// determine how many Household members there are
 				Integer numHouseholdMembers = Integer.parseInt(bits[2]);

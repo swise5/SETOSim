@@ -39,7 +39,7 @@ public class EvacuationDecisionTests {
 		Coordinate shelterPoint = new Coordinate(10, 0);
 
 		// generate a Household and populate it with evacuees
-		Household h = new Household(homePoint);
+		Household h = new Household("hh_" + world.pullNextHouseholdID(), homePoint, world.householdsLayer);
 		
 		Person driver = PersonTests.createDummyPerson(world, 0, homePoint, homePoint, null , h), 
 				p1 = PersonTests.createDummyPerson(world, 1, homePoint, homePoint, null , h),
@@ -50,7 +50,7 @@ public class EvacuationDecisionTests {
 		
 		h.setInHazardZone(true);
 		for(Person p: h.getMembers())
-			p.beginEvacuating();
+			p.beginEvacuating(0);
 		
 		SchedulingTests.runScheduleUntilAgentFinishes(world, driver, 100);
 		
