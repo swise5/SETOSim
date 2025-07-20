@@ -54,6 +54,8 @@ public class EvacuationOrderTests {
 		// load the evacuation areas
 		world.evacuationAreas = InputCleaning.readInVectorLayer(world.params.formatInputFilename(myEvacAreas), 
 				world.params.grid_width, world.params.grid_height, "evacuationAreas", new Bag());
+		world.params.evacuationAreaIDColumnName = evacuationScenarioColname;
+
 		world.params.forecastArrivalTime = 3;
 		world.params.forecastNoticePeriod = 1;
 		
@@ -75,6 +77,7 @@ public class EvacuationOrderTests {
 		// SETUP 
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
+		world.params.evacuationScenarioFilename = null;
 		
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0), null);
@@ -106,6 +109,7 @@ public class EvacuationOrderTests {
 		// SETUP 
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasTimed);
+		world.params.evacuationScenarioFilename = null;
 		
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0));
@@ -136,7 +140,6 @@ public class EvacuationOrderTests {
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
 		world.params.evacuationScenarioFilename = evacuationScenarioName;
-		world.params.evacuationAreaIDColumnName = evacuationScenarioColname;
 		
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0), 15); // 15 * 5 = 75 yo - senior/dependent

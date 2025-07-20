@@ -97,15 +97,23 @@ public class InputCleaning {
 		ArrayList <String> results = new ArrayList <String> ();
 		try {				
 				System.out.print("Reading in " + layerDescription + "from " + filename + "...");
+				
+				//Path path = FileSystems.getDefault().getPath(filename);
+			  //  BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_16);
+				
 				FileInputStream fstream = new FileInputStream(filename);
 				BufferedReader rawFile = new BufferedReader(new InputStreamReader(fstream));
 				String s;
 				while((s = rawFile.readLine()) != null) {
-					results.add(s);
+					String lessRaw = s.replaceAll("[^\\p{Graph}\n\r\t ]", "");
+					results.add(lessRaw);
 				};
 				rawFile.close();
+				//Path path = Paths.get(filename);
+				//List <String> nonsense  = Files.readAllLines(path, StandardCharsets.ISO_8859_1); //.UTF_8);
 				System.out.println("done");
 
+//				results.addAll(nonsense);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
