@@ -65,7 +65,7 @@ public class TakamatsuSim extends SimState {
 
 	// settings
 	public Params params;
-	public static String paramsFilename = "src/main/resources/params_default.txt";
+	public static String paramsFilename = "src/main/resources/myriad.txt";
 	long mySeed = 0;
 	
 	public static boolean verbose = false;
@@ -96,7 +96,8 @@ public class TakamatsuSim extends SimState {
 	HashMap <MasonGeometry, ArrayList <GeoNode>> localNodes;
 	public Bag terminus_points = new Bag();
 	public Edge [][] roadAdjacencyMatrix = null;
-	public HashMap <Integer, HashSet> roadClosures;
+//	public HashMap <Integer, HashSet> roadClosures;
+	public HashSet roadClosures;
 
 	public GeomVectorField stationLayer;
 	public ArrayList <GeoNode> stations = new ArrayList <GeoNode> ();
@@ -341,22 +342,22 @@ public class TakamatsuSim extends SimState {
 	
 	public void scheduleFlood() {
 		
-		ArrayList <Integer> roadClosureTimes = new ArrayList <Integer> (roadClosures.keySet());
+	//	ArrayList <Integer> roadClosureTimes = new ArrayList <Integer> (roadClosures.keySet());
 		
-		if(roadClosureTimes == null || roadClosureTimes.size() == 0)
+		if(roadClosures == null || roadClosures.size() == 0)
 			return;
 		
-		Collections.sort(roadClosureTimes);
-		int maxTime = roadClosureTimes.get(roadClosureTimes.size() - 1);
+//		Collections.sort(roadClosureTimes);
+//		int maxTime = roadClosureTimes.get(roadClosureTimes.size() - 1);
 		
 		Steppable floodScheduler = new Steppable(){
 
-			int floodIndex = maxTime;
+//			int floodIndex = maxTime;
 			
 			@Override
 			public void step(SimState arg0) {
 				
-				if(floodIndex < 0) return;
+//				if(floodIndex < 0) return;
 				double time = arg0.schedule.getTime();
 				
 				HashSet <Household> householdsImpacted = new HashSet <Household> ();
@@ -366,15 +367,18 @@ public class TakamatsuSim extends SimState {
 //				if(params.floodedFilename.length() == 0)
 //					fieldWithFloodingInfo = roadLayer;
 				
+				System.out.println("FLOOD BEGINNING");
+				
 				for(Object o: floodedLayer.getGeometries()){
 					MasonGeometry mg = (MasonGeometry) o;
 
 					// the hazard may be read in as a polygon...
-					if(mg.hasAttribute("depth") && mg.getIntegerAttribute("depth").intValue() != floodIndex) // only add the latest set!
-						continue;
+//					if(mg.hasAttribute("depth") && mg.getIntegerAttribute("depth").intValue() != floodIndex) // only add the latest set!
+//						continue;
 					
 					// ...or else as road segments
-					else if(mg.hasAttribute(params.roadInundationColumnName) && 
+					//else 
+						if(mg.hasAttribute(params.roadInundationColumnName) && 
 							mg.getDoubleAttribute(params.roadInundationColumnName) < params.roadInundationImpassableDepth)
 						continue; // if it's not inundated, ignore it
 					
@@ -394,8 +398,8 @@ public class TakamatsuSim extends SimState {
 				for(Household h: householdsImpacted)
 					h.setInHazardZone(true);
 				
-				HashSet roadsTakenOut = roadClosures.get(floodIndex); 
-				for(Object o: roadsTakenOut) {
+				//HashSet roadsTakenOut = roadClosures;//.get(floodIndex); 
+				for(Object o: roadClosures) {// roadsTakenOut) {
 					MasonGeometry mg = (MasonGeometry) o;
 					mg.addAttribute("open", "CLOSED");
 				}
@@ -412,9 +416,10 @@ public class TakamatsuSim extends SimState {
 				waterLayer.setMBR(mbrCopy);
 //				waterLayer.updateSpatialIndex();
 				
-				floodIndex--;
-				if(floodIndex > 0)
-					arg0.schedule.scheduleOnce(arg0.schedule.getTime() + params.ticks_per_hour, this);
+//				floodIndex--;
+//				if(floodIndex > 0)
+//					arg0.schedule.scheduleOnce(arg0.schedule.getTime() + params.ticks_per_hour, this);
+					
 			}
 			
 		};
@@ -450,11 +455,13 @@ public class TakamatsuSim extends SimState {
 		if( params.evacuationScenarioFilename != null && params.evacuationScenarioFilename.length() > 0) {
 			
 			// first, pull out all of the areas by name so they can be accessed easily
-			HashMap <String, MasonGeometry> evacAreaNameMapping = new HashMap <String, MasonGeometry> ();
+			HashMap <String, ArrayList <MasonGeometry>> evacAreaNameMapping = new HashMap <String, ArrayList <MasonGeometry>> ();
 			for(Object o: this.evacuationAreas.getGeometries()) {
 				MasonGeometry mg = (MasonGeometry) o;
 				String myID = mg.getStringAttribute(params.evacuationAreaIDColumnName);
-				evacAreaNameMapping.put(myID, mg);
+				if(!evacAreaNameMapping.containsKey(myID))
+					evacAreaNameMapping.put(myID, new ArrayList <MasonGeometry> ());
+				evacAreaNameMapping.get(myID).add(mg);
 			}
 			
 			// next, iterate through the evacuation events and schedule them
@@ -467,13 +474,14 @@ public class TakamatsuSim extends SimState {
 			// headers
 			HashMap <String, Integer> columnsToIndex = new HashMap <String, Integer> ();
 			Integer index = 0;
-			for(String s: events.get(0).split(","))
-				columnsToIndex.put(s.strip().toLowerCase(), index++);
-			int areaNameIndex = columnsToIndex.get("name"),
-					rawTimeIndex = columnsToIndex.get("time"),
-					elderlyIndex = columnsToIndex.get("elderly"),
-					allPeopleIndex = columnsToIndex.get("all"),
-					floodTimeIndex = columnsToIndex.get("flooding");
+			String headerLine = events.get(0).strip();
+			for(String s: headerLine.split(","))
+				columnsToIndex.put(s.trim(), index++);
+			int areaNameIndex = columnsToIndex.get("name");
+			int	rawTimeIndex = columnsToIndex.get("time");
+					int		elderlyIndex = columnsToIndex.get("elderly");
+							int	allPeopleIndex = columnsToIndex.get("all");
+									int floodTimeIndex = columnsToIndex.get("flooding");
 			
 			for(int i = 1; i < events.size(); i++) { // ignore the header
 				String [] bits = events.get(i).split(",");
@@ -488,9 +496,11 @@ public class TakamatsuSim extends SimState {
 						elderlyPercent = Double.parseDouble(elderly),
 						allPercent = Double.parseDouble(allPeople);
 
-				// set up with the correct parameters
-				AreaEvacuater scheduledEvac = new AreaEvacuater(evacAreaNameMapping.get(areaName).geometry, elderlyPercent, allPercent);				
-				schedule.scheduleOnce(parsedTime, scheduledEvac);
+				// set up with the correct parameters - for each of the geometries which make up this space
+				for(MasonGeometry myGeom: evacAreaNameMapping.get(areaName)) {
+					AreaEvacuater scheduledEvac = new AreaEvacuater(myGeom, elderlyPercent, allPercent);				
+					schedule.scheduleOnce(parsedTime, scheduledEvac);
+				}
 			}
 			
 			return;
@@ -514,7 +524,7 @@ public class TakamatsuSim extends SimState {
 			}
 			
 			
-			AreaEvacuater scheduledEvac = new AreaEvacuater(mg.geometry, 0, params.compliance);
+			AreaEvacuater scheduledEvac = new AreaEvacuater(mg, 0, params.compliance);
 			schedule.scheduleOnce(timeAsInt, scheduledEvac);
 			
 			// sometimes there will be a voluntary evacuation before the mandatory one - in that case, schedule
@@ -530,16 +540,16 @@ public class TakamatsuSim extends SimState {
 	
 	public class AreaEvacuater implements Steppable {
 
-		Geometry g;
+		MasonGeometry g;
 		double elderly = 0.;
 		double minors = 0.;
 		double all = 0.;
 		
-		public AreaEvacuater(Geometry geom) {
+		public AreaEvacuater(MasonGeometry geom) {
 			this.g = geom;
 		}
 		
-		public AreaEvacuater(Geometry geom, double elderly, double all) {
+		public AreaEvacuater(MasonGeometry geom, double elderly, double all) {
 			this(geom);
 			this.elderly = elderly;
 			this.all = all;
@@ -573,7 +583,7 @@ public class TakamatsuSim extends SimState {
 				}
 			}
 
-			/*
+			
 			Bag p = agentsLayer.getObjectsWithinDistance(g, params.hazardThresholdDistance);
 			peopleImpacted.addAll(p);
 			
@@ -583,18 +593,15 @@ public class TakamatsuSim extends SimState {
 				if(a.evacuatingCompleted()) // don't update people who are already in shelters
 					continue;
 				
-				// if they meet the criteria, schedule them to find out! 
-				if((elderly && a.getAge() > 12) ||
-				   (minors && a.getAge() < 4) ||
-				   (arg0.random.nextDouble() <= percentageCompliance)) {
-					a.setInundated(true, time); // they're all inundated
-					a.updateEvacRecord("EVAC_ORDER_PROMPTED_AT:" + (int) time);
-					arg0.schedule.scheduleOnce(a);
+				double val = arg0.random.nextDouble();
+				if( (evacAll && val < all) || 
+					(evacElderly && a.getAge() > 12 && val < elderly)) {
+					boolean prompted = a.beginEvacuating(time);//.setInundated(true, time); // they're all inundated
+					if(prompted) 
+						a.updateEvacRecord("EVAC_ORDER_PROMPTED_AT:" + (int) time);
 				}
 				
 			}
-
-		*/	
 		}
 		
 		
@@ -778,7 +785,7 @@ public class TakamatsuSim extends SimState {
 		// set up the adjacency matrix for easier access
 		roadAdjacencyMatrix = roads.getAdjacencyList(true); // outgoing from this node
 
-		roadClosures = new HashMap <Integer, HashSet> ();
+		roadClosures = new HashSet (); //HashMap <Integer, HashSet> ();
 		networkLayer = new GeomVectorField(params.grid_width, params.grid_height);
 		networkEdgeLayer = new GeomVectorField(params.grid_width, params.grid_height);
 		
@@ -817,14 +824,16 @@ public class TakamatsuSim extends SimState {
 				if(edgeInfo.hasAttribute("depth"))
 					try {
 						int ultimateDepth = edgeInfo.getIntegerAttribute("depth").intValue();
-						if(ultimateDepth > 0 && roadClosures.containsKey(ultimateDepth))
+						if(ultimateDepth > params.roadInundationImpassableDepth)
+							roadClosures.add(edgeInfo);
+/*						if(ultimateDepth > 0 && roadClosures.containsKey(ultimateDepth))
 							roadClosures.get(ultimateDepth).add(edgeInfo);
 						else {
 							HashSet newTiming = new HashSet();
 							newTiming.add(edgeInfo);
 							roadClosures.put(ultimateDepth, newTiming);
 						}
-					} catch (Exception e) {
+*/					} catch (Exception e) {
 						System.out.println("WARNING: roads do not have attribute 'depth', used for updating closures");
 						//int bluh = 0;
 						//e.printStackTrace();
@@ -833,9 +842,10 @@ public class TakamatsuSim extends SimState {
 					try {
 						double depth = edgeInfo.getDoubleAttribute(params.roadInundationColumnName);
 						if(depth > params.roadInundationImpassableDepth) {
-							if(! roadClosures.containsKey(1))
-								roadClosures.put(1,  new HashSet());
-							roadClosures.get(1).add(edgeInfo);
+//							if(! roadClosures.containsKey(1))
+//								roadClosures.put(1,  new HashSet());
+//							roadClosures.get(1).add(edgeInfo);
+							roadClosures.add(edgeInfo);
 						}
 ;
 					} catch (Exception e) {
@@ -995,12 +1005,13 @@ public class TakamatsuSim extends SimState {
 			record_info.write("ID\tage\tstatus\tevacuatingRecord\tflooded\tx_home\ty_home\tx_loc\ty_loc\n");//\tdependent\tdependentOf\tturnedAway\n");
 			for(Person a: agents){
 
-				if(a.getEvacuationRecord() == null)//.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
+/*				if(a.getEvacuationRecord() == null)//.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
 				{
 					//if(! a.getHousehold().inHazardZone()) // if they're safe, don't export them; otherwise DO include them!
 						continue;					
 				}
-				
+*/				
+
 				String myID = a.getMyID();
 
 				String status = a.getActivityNode().getTitle();
@@ -1115,7 +1126,7 @@ public class TakamatsuSim extends SimState {
 			System.exit(0);
 		}
 
-		long seed = 60;//System.currentTimeMillis();
+		long seed = 59;//System.currentTimeMillis();
 		
 		// set up the seed
 		if(args.length > 0)

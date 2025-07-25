@@ -92,7 +92,7 @@ public class TakamatsuGUI extends GUIState {
 		TakamatsuSim world = (TakamatsuSim) state;
 		water.setField(world.waterLayer);
 		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
-		water.setImmutableField(true);
+		//water.setImmutableField(true);
 		
 		roads.setField(world.roadLayer);
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(180,180,180), false));

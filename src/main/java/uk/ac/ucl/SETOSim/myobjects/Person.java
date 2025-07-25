@@ -853,7 +853,7 @@ public class Person extends TrafficAgent {
 	public BehaviourNode getActivityNode(){ return this.currentAction;}
 	public boolean finishedPath(){
 		if(path == null) return true;
-		else if(path.size() == 0 && this.geometry.getCoordinate().distance(this.goalPoint) < world.params.resolution)
+		else if(path.size() == 0 && this.geometry.getCoordinate().distance(this.targetDestination) < world.params.resolution)
 			return true;
 		return false; 
 	}
@@ -872,6 +872,7 @@ public class Person extends TrafficAgent {
 			this.evacuationRecord += ",";
 		this.evacuationRecord += "SET_TO_INUNDATED:" + (int) time;
 		
+	
 	}
 //	public EvacuationPlan getEvacuationPlan(){ return myPlan; }
 	

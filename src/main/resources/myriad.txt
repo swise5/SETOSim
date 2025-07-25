@@ -1,0 +1,16 @@
+dirName: /Users/swise/workspace/takamatsu/data/okazakiDemo/
+agentFilename: synthPop_kagawaHHs.txt
+roadInundationColumnName: A31b_201
+roadsFilename: roads_with_inundation_16hagibis.shp
+floodedFilename: roads_with_inundation_16hagibis.shp
+compliance: 1
+percIgnored: 0.95
+sheltersFilename: sheltersWithParking.shp
+outputPrefix: okazaki_L2L1_10B_
+buildingsFilename: buildings_reproj.shp
+buildingUniqueCodeColname: gml_id
+evacuationAreasFilename: evacAreasSingles.shp
+evacuationScenarioFilename: EvacuationOrderScenario/L2-L1-10-N.csv
+roadInundationImpassableDepth: .0001
+forecastArrivalTime: 600
+waterFilename: waterBaselayer.shp
