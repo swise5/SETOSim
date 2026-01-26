@@ -54,7 +54,7 @@ public class PopulationSynthesis {
 	public static String buildingUniqueCodeColname = "id_text";//"gml_id";//"fid";
 	
 	
-	String buildingsFilename = "buildings_reproj.shp";//"/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";
+	String buildingsFilename = "buildings_final.shp";//"/Users/swise/Projects/hitomi/data/OkazakiABM/06_Buildings/buildings_reproj.shp";
 
 	String householdsFilename = "/Users/swise/Projects/hitomi/data/KagawaHouseholdsBasic.tsv";//"OkazakiHouseholdsBasic.tsv";
 
@@ -63,8 +63,11 @@ public class PopulationSynthesis {
 	//int targetNumHouseholdsToGenerate =  168000;//68700;//197030 ;
 
 	// Woden version
-	int targetNumIndividualsToGenerate = 204630;// TODO should ideally/potentially be reading from file!!!! 
-	int targetNumHouseholdsToGenerate =  90945;
+	//int targetNumIndividualsToGenerate = 204630;// TODO should ideally/potentially be reading from file!!!! 
+	//int targetNumHouseholdsToGenerate =  90945;
+	
+	int targetNumIndividualsToGenerate = 407000;
+	int targetNumHouseholdsToGenerate = 193000;
 	
 	
 	Network roadNetwork;

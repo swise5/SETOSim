@@ -53,11 +53,14 @@ public class Params {
 	
 	public boolean evacuationPolicy_neighbours = false;
 	public boolean evacuationPolicy_designatedPerson = false;
+	public boolean evacuationPolicy_verticalEvacuation = true; // turn this off for fires etc
+	public static double verticalEvacMinHeightRequirement = 1; // in terms of levels of the building? 
 	public static double neighbourDistance = 100; // meters
 
 	public static double rayleigh_sigma = 2; // from Wang et al, http://dx.doi.org/10.1016/j.trc.2015.11.010
 	public static double hazardThresholdDistance = 1; // meters
 	public double compliance = 1.;
+	public static double preparation_time = 30;
 
 	// dummies used to test following behaviours
 	public boolean leaderSet = false;
@@ -70,23 +73,27 @@ public class Params {
 	public static int forecastArrivalTime = (int)(15 * ticks_per_hour); // in ticks
 	public static int forecastingWidthParam = 720; // in ticks
 	public static int forecastNoticePeriod = (int) (6 * ticks_per_hour); // in ticks
-	public static String roadInundationColumnName = "depth";
+	public static String roadInundationColumnName = null;// "depth";
 	public static double roadInundationImpassableDepth = .001; // beyond this point, roads are impassable
 	
 	// POPULATION SETUP
 	
-	public double percIgnored = .95;// percent TO OMIT
+	public double percIgnored = .99;// percent TO OMIT
 	public int numCommutersOutbound = 0;//21331; // TODO this is a hack for Okazaki demo
 	public int numCommutersInbound = 0;//16458;
 	
 	public double likelihoodOfOwningVehicle = .6;
 
+	// REPORTING
+	public int road_reporting_step_interval = 5; // flow every 5 minutes
 	
 	/////////////// Data Sources ///////////////////////////////////////
 	
 	public String dirName = "data/takamatsuTsunamiDemo/";//okazakiDemo/";//ritsurinDemo/";
 		
-	public static String agentFilename = "synthPop_hh.txt";//"dummyPop.txt";
+	public static String agentFilename = "dummyPop.txt";//"synthPop_hh.txt";//
+
+	public static boolean verticalEvacEnabled = true;
 	//public static String regionalNamesFilename = "defaultRitsurinFiles/regionalNames.shp";
 	public String floodedFilename = "flooded_reproj.shp";//"simplifiedWater.shp";//"selectedWater.shp";//"TakamatsuTyphoon16.shp";
 	public String waterFilename = "water.shp";//"waterBaselayer.shp";//"selectedWater.shp";//"defaultRitsurinFiles/TakamatsuWaterAll.shp";
@@ -99,9 +106,10 @@ public class Params {
 	public String evacuationScenarioFilename = "";//"EvacuationOrderScenario/L2-L1-10-N.csv"; // "" - if no timing info!
 	
 	public String buildingUniqueCodeColname = "id_text";
+	public static String verticalEvacuationColname = "vert_evac";
 	
 	public String weightedRoadAttribute = "highway";//"HIERARCHY";//
-	public Boolean universalVehicles = false;
+	public Boolean universalVehicles = true;
 /*
     // Woden case
 	public String sheltersFilename = "bushfireWodenShelter.shp";
@@ -120,8 +128,8 @@ public class Params {
 	
 	
 	public String outputPrefix = null;	
-	boolean exportHeatmap = true; // export the heatmap or no?
-
+	boolean exportHeatmap = false; // export the heatmap or no?
+	boolean exportRoadUsage = true;
 	
 
 	public Params(String paramsFilename, boolean isVerbose){
@@ -184,5 +192,10 @@ public class Params {
 		if(filename.startsWith("/")) return filename;
 		else
 			return dirName + filename;
+	}
+
+	public static double rayleighDistrib(double unif){
+		double x = rayleigh_sigma * Math.sqrt(-2 * Math.log(unif)); // see https://en.wikipedia.org/wiki/Rayleigh_distribution#Generating_random_variates
+		return x;
 	}
 }

@@ -65,7 +65,7 @@ public class TakamatsuSim extends SimState {
 
 	// settings
 	public Params params;
-	public static String paramsFilename = "src/main/resources/myriad.txt";
+	public static String paramsFilename = "src/main/resources/params_default.txt";//hicss2025.txt";//"src/main/resources/myriad.txt";
 	long mySeed = 0;
 	
 	public static boolean verbose = false;
@@ -113,6 +113,7 @@ public class TakamatsuSim extends SimState {
 	// reporters
 	public GeomGridField heatmap = new GeomGridField();
 	public HashMap <String, Integer> roadUsageRecord = new HashMap <String, Integer> ();
+	public HashMap <String, ArrayList<Integer>> roadUsageByTimestep = new HashMap <String, ArrayList<Integer>> ();
 
 	public int numEvacuated = 0;
 	public ArrayList <Integer> numEvacuatedOverTime = new ArrayList <Integer> ();
@@ -126,6 +127,8 @@ public class TakamatsuSim extends SimState {
 	public int shelterReportCounter = -1;
 	public HashMap <Shelter, ArrayList <Integer>> shelterReport = new HashMap <Shelter, ArrayList <Integer>> ();
 
+	ArrayList <Person> tracked = new ArrayList <Person> ();
+	
 	/////////////// END Containers ///////////////////////////////////////
 
 	/////////////// Objects //////////////////////////////////////////////
@@ -275,6 +278,10 @@ public class TakamatsuSim extends SimState {
 
 			// SCHEDULE SHELTERS
 			setupShelterReporting();
+			
+			// SCHEDULE ROAD REPORTING
+			if(params.exportRoadUsage) 
+				setupRoadReporting();
 
 			System.out.println("done");			
 			
@@ -343,9 +350,12 @@ public class TakamatsuSim extends SimState {
 	public void scheduleFlood() {
 		
 	//	ArrayList <Integer> roadClosureTimes = new ArrayList <Integer> (roadClosures.keySet());
-		
-		if(roadClosures == null || roadClosures.size() == 0)
+
+		// if there are no road closures and no flood3d file, it must be some other kind of simulation
+		if((roadClosures == null || roadClosures.size() == 0) && this.floodedLayer == null) {
+			System.out.println("WARNING: simulation has no road flooding information included");
 			return;
+		}
 		
 //		Collections.sort(roadClosureTimes);
 //		int maxTime = roadClosureTimes.get(roadClosureTimes.size() - 1);
@@ -378,7 +388,7 @@ public class TakamatsuSim extends SimState {
 					
 					// ...or else as road segments
 					//else 
-						if(mg.hasAttribute(params.roadInundationColumnName) && 
+						if(params.roadInundationColumnName != null && mg.hasAttribute(params.roadInundationColumnName) && 
 							mg.getDoubleAttribute(params.roadInundationColumnName) < params.roadInundationImpassableDepth)
 						continue; // if it's not inundated, ignore it
 					
@@ -665,6 +675,13 @@ public class TakamatsuSim extends SimState {
 					p.dependentOf = otherPerson;
 				}
 			}
+			
+			if(random.nextDouble() < .01 && tracked.size() < 30) {
+				p.tracked = true;
+				tracked.add(p);
+			}
+				
+			
 		}
 		
 
@@ -808,6 +825,11 @@ public class TakamatsuSim extends SimState {
 				// set it as being (initially, at least) "open"
 				ListEdge edge = (ListEdge) ed;
 				MasonGeometry edgeInfo = (MasonGeometry)edge.info;
+				
+				String roadName = edgeInfo.getStringAttribute("full_id");
+				if(!roadUsageByTimestep.containsKey(roadName))
+					roadUsageByTimestep.put(roadName, new ArrayList <Integer>());
+				
 				edgeInfo.addStringAttribute("open", "OPEN");
 				double myLength = edgeInfo.geometry.getLength();
 				edgeInfo.addDoubleAttribute("length", myLength);
@@ -863,7 +885,20 @@ public class TakamatsuSim extends SimState {
 		}
 	}
 	
-	
+	public void setupRoadReporting() {
+		
+		Steppable roadReporter = new Steppable() {
+
+			@Override
+			public void step(SimState arg0) {
+				resetRoadUsage();
+			}
+			
+		};
+		
+		this.schedule.scheduleRepeating(roadReporter, params.road_reporting_step_interval);
+	}
+		
 	public void setupShelters() {
 		
 		Bag shelterAtts = new Bag();
@@ -986,8 +1021,32 @@ public class TakamatsuSim extends SimState {
 				}
 				record_heatmap.close();
 			}
+			
+			if(params.exportRoadUsage) {
+				
+				String roadUsageFilename = params.outputPrefix + this.seed() + "_roaduse_" + params.road_reporting_step_interval + ".txt";
+				record_heatmap = new BufferedWriter(new FileWriter(roadUsageFilename));
+				System.out.println(roadUsageFilename);
 
+				for(String s: roadUsageByTimestep.keySet()){
+					record_heatmap.write(s + "\t" + roadUsageByTimestep.get(s).toString() + "\n");
+				}
+				record_heatmap.close();
+			}
+			
+			
+			if(tracked.size() > 0) {
+				
+				String trackedAgentFilename = params.outputPrefix + this.seed() + "_trackedAgents_" + ".txt";
+				record_heatmap = new BufferedWriter(new FileWriter(trackedAgentFilename));
+				System.out.println(trackedAgentFilename);
 
+				for(Person p: tracked){
+					record_heatmap.write(p.tracks + "\n");
+				}
+				record_heatmap.close();
+			}
+			
 			// print a record out
 			System.out.println(this.mySeed + "\t" + this.numEvacuated);
 			
@@ -1002,7 +1061,7 @@ public class TakamatsuSim extends SimState {
 			record_info.write(this.numAttemptedEvacsOverTime.toString() + "\n");
 			record_info.write(this.numAssistingOverTime.toString());
 */
-			record_info.write("ID\tage\tstatus\tevacuatingRecord\tflooded\tx_home\ty_home\tx_loc\ty_loc\n");//\tdependent\tdependentOf\tturnedAway\n");
+			record_info.write("ID\tage\tstatus\tevacuatingRecord\tflooded\tx_home\ty_home\tx_loc\ty_loc\thas_vehicle\n");//\tdependent\tdependentOf\tturnedAway\n");
 			for(Person a: agents){
 
 /*				if(a.getEvacuationRecord() == null)//.getEvacuatingTime() < 0) // don't export info about those who don't evacuate!
@@ -1022,8 +1081,12 @@ public class TakamatsuSim extends SimState {
 //					inWater = "inWater";
 //
 				String inWater = "notSubmerged";
-				if(a.getHousehold() != null && a.getHousehold().inHazardZone())
+				if(a.getHousehold() != null && a.getHousehold().inHazardZone()) {
 					inWater = "inZone";
+					if(a.getEvacuationRecord().contains("VERTICAL_EVACUATION"))
+						inWater += "_verticalEvac";
+				}
+				
 
 				Coordinate homeCoord = a.getHousehold().getHome();
 				Coordinate locCoord = a.geometry.getCoordinate();
@@ -1040,9 +1103,11 @@ public class TakamatsuSim extends SimState {
 				}
 				System.out.print(myTime + "\t");
 			*/	
+				int car = 0;
+				if(a.hasVehicle()) car = 1;
 				record_info.write(myID + "\t" +  a.getAge() + "\t" + status + "\t" + a.getEvacuationRecord() + "\t"
 						+ inWater + "\t" + (int) homeCoord.x + "\t" + (int)  homeCoord.y + 
-						"\t" + (int) locCoord.x + "\t" + (int) locCoord.y //+ "\t" + dependent + "\t" + dependentOf + "\t" + a.turnedAwayFromShelterCount
+						"\t" + (int) locCoord.x + "\t" + (int) locCoord.y + "\t" + car//+ "\t" + dependent + "\t" + dependentOf + "\t" + a.turnedAwayFromShelterCount
 						+ "\n");//a.getHistory() + "\n");
 				
 				
@@ -1050,14 +1115,19 @@ public class TakamatsuSim extends SimState {
 
 			this.record_info.close();
 			
-			
 			// SAVE ALL AGENT INFO
+/*
 			String myShelterOutFile = params.outputPrefix + this.seed() + "_SHELTERS.txt";
 			System.out.println("writing out to " + myShelterOutFile);
 			record_info = new BufferedWriter(new FileWriter(myShelterOutFile));
-			for(Entry<Shelter, ArrayList<Integer>> s: shelterReport.entrySet()) {
-				record_info.write(s.getKey().getStringAttribute("name") + "\t" + s.getValue().toString() + "\n");
+			for(Person p: tracked) {
+				record_info.write(p.getMyID() + "\t" + p.tracks);
 			}
+*/
+// OVERWRITING FOR CRIMES			
+//			for(Entry<Shelter, ArrayList<Integer>> s: shelterReport.entrySet()) {
+//				record_info.write(s.getKey().getStringAttribute("name") + "\t" + s.getValue().toString() + "\n");
+//			}
 
 
 			this.record_info.close();
@@ -1114,6 +1184,22 @@ public class TakamatsuSim extends SimState {
 		return closestLine.extractPoint(myIndex);
 	}
 
+	public ArrayList <MasonGeometry> getBuildingsAt(Geometry g){
+		Bag result = buildingLayer.getObjectsWithinDistance(g, params.resolution);
+		return new ArrayList <MasonGeometry> (result);
+	}
+
+	public int getMaxBuildingHeightHere(Geometry g){
+		Bag result = buildingLayer.getObjectsWithinDistance(g, params.resolution);
+		int maxHeight = -1;
+		for(Object o: result) {
+			Integer i = ((MasonGeometry) o).getIntegerAttribute("levels");
+			if(i != null && i > maxHeight)
+				maxHeight = i;
+		}
+		return maxHeight;
+	}
+
 	/**
 	 * To run the model without visualization
 	 */
@@ -1139,7 +1225,7 @@ public class TakamatsuSim extends SimState {
 			takamatsuModel = new TakamatsuSim(seed);
 
 		// set up any other specifics accordingly
-		Integer timeToRun = 900;//60 * 24;
+		Integer timeToRun = 60 * 24;
 		boolean tsunamiScenario = false;
 		try {
 			
@@ -1200,6 +1286,22 @@ public class TakamatsuSim extends SimState {
 			roadUsageRecord.put(usedRoad, 1);
 		else
 			roadUsageRecord.put(usedRoad, i + 1);
+	}
+	
+	public void resetRoadUsage() {
+
+		for(String road: roadUsageByTimestep.keySet()) {
+			
+			int numVehiclesPassed = 0;
+
+			// if the road experienced flow this step, record volume
+			if(roadUsageRecord.containsKey(road)) {
+				numVehiclesPassed = roadUsageRecord.get(road);
+				roadUsageRecord.put(road, 0);
+			}
+
+			roadUsageByTimestep.get(road).add(numVehiclesPassed);			
+		}
 	}
 	
 	public void resetForTsunamiScenario() {

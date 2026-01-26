@@ -104,7 +104,7 @@ public class TakamatsuGUI extends GUIState {
 		
 		agents.setField(world.agentsLayer);
 		agents.setPortrayalForAll( new AttributePolyPortrayal(
-				new SimpleColorMap(Params.speed_pedestrian,Params.speed_vehicle, new Color(255,0,0,50), new Color(0,0,255,100)),
+				new SimpleColorMap(Params.speed_pedestrian,Params.speed_vehicle, new Color(255,0,0,20), new Color(0,0,255,100)),
 				"speed", new Color(0,0,0,0), true, 40));
 		
 		shelters.setField(world.shelterLayer);

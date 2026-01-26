@@ -1,2 +1,16 @@
+dirName: data/takamatsuTsunamiDemo/
+agentFilename: synthPop_hh.txt
+roadsFilename: roads_simple.shp
+floodedFilename: flooded_reproj.shp
+percIgnored: 0.8
+sheltersFilename: sheltersWithParking.shp
+outputPrefix: tsunamiTesting_2026workshop_
+buildingsFilename: buildings_final.shp
+buildingUniqueCodeColname: id_text
+evacuationAreasFilename: evac_areas.shp
+roadInundationImpassableDepth: 10.0
+forecastArrivalTime: 60
+forecastNoticePeriod: 60
 waterFilename: water_flat.shp
-floodedFilename: 
+rayleigh_sigma: 10.0
+preparation_time: 30.0

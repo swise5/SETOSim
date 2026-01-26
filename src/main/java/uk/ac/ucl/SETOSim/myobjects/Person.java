@@ -79,6 +79,8 @@ public class Person extends TrafficAgent {
 	boolean isLeader = false;
 	Person myLeader = null;
 	
+	public boolean tracked = false;
+	
 	public Person(String id, Coordinate position, Coordinate home, Coordinate work, Household household, int age, int sex, TakamatsuSim world){
 
 		// add it to the space
@@ -148,11 +150,10 @@ public class Person extends TrafficAgent {
 		else
 			myHousehold = household;
 		
-		myHousehold.addMember(this);
-
 		if(world.params.universalVehicles && myHousehold.members.size() == 0)
-			this.myVehicle = new Vehicle(id + "_vehicle", home, 4, world); // each household has a car
+			this.myVehicle = new Vehicle(id + "_vehicle", home, 5, world); // each household has a car
 
+		myHousehold.addMember(this);
 		
 		// set up the workspace if needed
 		if(work != null)
@@ -170,6 +171,9 @@ public class Person extends TrafficAgent {
 		
 		double time = state.schedule.getTime();		
 		double delta = Double.MAX_VALUE;
+		
+		if(tracked)
+			this.trackMe(time);
 		
 		if(this.isPassengerOfVehicle())
 			return; // don't do anything while a passenger
@@ -413,18 +417,18 @@ public class Person extends TrafficAgent {
 			setActivityNode(world.behaviourFramework.evacuatingNode);
 		}
 		
-//		else if(!this.myHousehold.inHazardZone){
+		else {//if(!this.myHousehold.inHazardZone){
 
 //			if(evacuatingTime < 0)
 //				evacuatingTime = world.schedule.getTime(); // record when we started, at least
 			
 			setActivityNode(world.behaviourFramework.travelToHomeShelteringNode);
-			headFor(myHousehold.home);
+			//headFor(myHousehold.home);
 			
 			if(dependentOf != null) // trigger them!
 				dependentOf.beginEvacuatingDependent();
 						
-//		}
+		}
 //		else {
 //			setActivityNode(world.behaviourFramework.evacuatingNode);
 //		}
@@ -450,11 +454,6 @@ public class Person extends TrafficAgent {
 		Person p = (Person) n.get(world.random.nextInt(s));
 		if(p != this)
 			p.beginEvacuating(world.schedule.getTime());
-	}
-	
-	public static double rayleighDistrib(double unif){
-		double x = Params.rayleigh_sigma * Math.sqrt(-2 * Math.log(unif));
-		return x;
 	}
 	
 	public double assessRisk(Household target, double time){
@@ -711,7 +710,7 @@ public class Person extends TrafficAgent {
 		// set up the coordinates
 		this.startIndex = segment.getStartIndex();
 		this.endIndex = segment.getEndIndex();
-
+		
 		return MovementOutcome.successfulMovement;
 	}
 
@@ -762,8 +761,10 @@ public class Person extends TrafficAgent {
 	public int navigate(double resolution){
 		if(path != null){
 			
-			if(!this.isOperatingVehicle() && this.myVehicle != null && this.myVehicle.geometry.distance(this.geometry) < world.params.resolution)
+			if(!this.isOperatingVehicle() && this.myVehicle != null && this.myVehicle.geometry.distance(this.geometry) < world.params.resolution) {
 				myVehicle.setOperator(this);
+				setSpeed(Params.speed_vehicle);
+			}
 			
 			double time = 1;
 			while(path != null && time > 0){
@@ -834,7 +835,7 @@ public class Person extends TrafficAgent {
 	// GETTERS AND SETTERS
 	//
 	
-	public boolean evacuatingCompleted() {return this.evacuationRecord != null && evacuationRecord.endsWith("DONE");}
+	public boolean evacuatingCompleted() {return this.evacuationRecord != null && evacuationRecord.endsWith("DONE:");}
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
@@ -879,6 +880,8 @@ public class Person extends TrafficAgent {
 	public boolean hasPath() { return path != null; }
 	public GeoNode getNode() { return node; }
 	public String getEvacuationRecord() { return this.evacuationRecord; }
+	
+	public boolean hasVehicle() { return myVehicle != null; }
 
 	public boolean isOperatingVehicle() { return this.operatorOf != null; }
 	public boolean isPassengerOfVehicle() { return this.passengerOf != null; }
@@ -924,4 +927,44 @@ public class Person extends TrafficAgent {
 	}
 	
 	public int hashCode(){ return hash; }
+
+	public String tracks;
+	
+	public void trackMe(double time, Coordinate to, String comment) {
+		if(tracks == null)
+			tracks = "";
+
+		// want to know where they're starting, where they're going, and how they expect to get there
+		String sep = "\t";
+		
+		String route = "";
+		if(this.myVehicle != null)
+			route += "CAR ";
+		else
+			route += "FOOT ";
+		if(this.path != null) {
+			for(Edge e: this.path)
+				route += ((MasonGeometry)e.getInfo()).getStringAttribute("full_id") + " ";
+		}
+		tracks += time + sep + geometry.getCoordinate().toString() + sep + to.toString() + sep + comment + sep + route + "\n";
+	}
+
+	public void trackMe(double time) {
+
+		String sep = "\t";		
+		String route = "";
+
+		if(tracks == null)
+			tracks = this.myID + sep;
+		else
+			tracks += "->";
+		
+		if(this.myVehicle != null)
+			route += "CAR ";
+		else
+			route += "FOOT ";
+		
+		tracks += time + sep + geometry.getCoordinate().toString() + sep + route;
+	}
+	
 }

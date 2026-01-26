@@ -57,6 +57,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 						p.setActivityNode(travelToWorkNode);
 						if(p.myVehicle != null)
 							p.myVehicle.setOperator(p);
+//						if(p.tracked)
+//							p.trackMe(time, p.work, "journeyToWork");
 						
 						return 1;
 					}
@@ -135,9 +137,14 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 						p.setActivityNode(workNode);
 						p.removeFromEdge();
 						
-						if(p.isOperatingVehicle())
+						if(p.isOperatingVehicle()) {
 							p.stopOperatingVehicle();
+							p.setSpeed(Params.speed_pedestrian);
+						}
 						
+			//			if(p.tracked)
+			//				p.trackMe(time, p.work, "arrived_work");
+
 						return 8 * Params.ticks_per_hour; // work 8 hours
 					}
 					
@@ -189,11 +196,16 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				// if the Person has successfully made it home, stay there for a while. 
 				if(outcome > 0 && p.finishedPath()){
 					
-					if(p.isOperatingVehicle())
+					if(p.isOperatingVehicle()) {
 						p.stopOperatingVehicle();
+						p.setSpeed(Params.speed_pedestrian);
+					}
 
 					p.setActivityNode(homeNode);
 					p.removeFromEdge();
+
+		//			if(p.tracked)
+		//				p.trackMe(time, p.myHousehold.getHome(), "arrived_home");
 
 					return 10 * Params.ticks_per_hour; // stay at home for 10 hours
 				}
@@ -234,7 +246,7 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					p.prepared = true; // now they have taken this step!
 					
 					// prepare for some amount of time before checking in again
-					return p.rayleighDistrib(world.random.nextDouble());
+					return Params.preparation_time + Params.rayleighDistrib(world.random.nextDouble());
 				}
 
 				// otherwise, they are ready to take the next step, which is either
@@ -305,6 +317,24 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					// store the current simulation time in the attribute
 					//p.evacuatingTime = time;
 					p.evacuationRecord = "START_EVACUATING:" + time;
+
+					// may choose to stay in home if it is suitable
+					try {
+						
+						// confirm if...  and if the Person is at home for it
+						if(Params.verticalEvacEnabled &&    // ...vertical evacuation is appropriate in this scenario...
+								p.myHousehold.home.distance(p.geometry.getCoordinate()) < Params.resolution && // ...AND they're at home...
+								p.getHousehold().getIntegerAttribute(Params.verticalEvacuationColname) > 0    // ...AND their home is safe!
+							) {
+								// it is! They should switch immediately to having evacuated, and not do anything further.
+								p.updateEvacRecord("VERTICAL_EVACUATION", time);
+								p.setActivityNode(evacuatedNode);
+								return 1; // check in again at the next step
+								
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 					
 					// pick a shelter and try to find a route there
 					Shelter myShelter = p.selectTargetShelter(ts.shelterLayer);
@@ -468,6 +498,11 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 			public double next(Steppable s, double time) {
 
 				Person p = (Person) s;
+				
+				// make sure they've not already finished, only to have this refire somehow.
+				if(p.evacuationRecord.contains("FINISH_EVAC"))
+					return Double.MAX_VALUE;
+				
 				p.removeFromEdge();
 				p.updateEvacRecord("FINISH_EVAC", time);
 				p.updateEvacRecord("DONE", time);
@@ -503,24 +538,32 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				// shelter in place OR evacuate to somewhere safer 
 				if(outcome > 0 && p.finishedPath()){
 					
-					if(p.isOperatingVehicle())
+					if(p.isOperatingVehicle()) {
 						p.stopOperatingVehicle();
+						p.setSpeed(Params.speed_pedestrian);
+					}
 					
-					// check to see if there is an appropriate shelter still 
+					// if vertical evacuation is an option, the Person can simply begin doing that
+					if(world.params.verticalEvacEnabled && 
+							world.getMaxBuildingHeightHere(p.geometry) >= world.params.verticalEvacMinHeightRequirement) {
+						p.setActivityNode(evacuatedNode);
+						p.updateEvacRecord("VERTICAL_EVACUATION_UNDERTAKEN", time);
+						return 1;
+					}
+					
+					// otherwise, they check to see if there is still an appropriate shelter
 					Shelter shelter = p.selectTargetShelter(ts.shelterLayer);
 					p.targetShelter = shelter;
 
-					// TODO more nuance
-					
-					// it may be that the person should stay home and shelter there - if so, do so!
+					// if there's no good option or the options are inaccessible, the Person will shelter in place
 					if(p.targetShelter == null || p.headFor(p.targetShelter.entrance) == MovementOutcome.unrecoverableRoutingFailure) {
 						p.setActivityNode(shelteringNode);
 						p.updateEvacRecord("ARRIVED_AT_HOME_TO_SHELTER_IN_PLACE", time);
 						return 1;
 					}
 					
-					// otherwise, they may now have a target Shelter
-					else {// otherwise, start preparing to evacuate
+					// otherwise, they have a target Shelter which they'll go to once they've finished preparing to leave
+					else {
 						p.setActivityNode(preparingToEvacuateNode);
 						p.updateEvacRecord("ARRIVED_HOME_PREP_STARTED", time);
 					}
@@ -569,6 +612,7 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				}
 				else { */
 					p.removeFromEdge();
+					p.setSpeed(0);
 					p.updateEvacRecord("SHELTERING_IN_HOME", time);
 					p.updateEvacRecord("DONE", time);
 //					if(p.evacuatingTime > 0)
@@ -599,10 +643,11 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				p.updateEvacRecord("TRAPPED", time);
 				p.updateEvacRecord("DONE", time);
 
+				p.setSpeed(0);
+				
 				if(p.world.verbose)
 					System.out.println("TRAPPED :(");
-				// TODO REMOVE
-				//p.tempUpdateLoc(world.notInSimulation);
+
 				return Double.MAX_VALUE;
 			}
 			

@@ -50,17 +50,29 @@ public class SpatialTests {
 	public void RoadNetworkReadInCorrectly() {
 
 		TakamatsuSim sut = setupTestingWorldWithRoads(testingDirectory, "roads.shp", 1);
+		TakamatsuSim sut2 = setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
 
-		System.out.println(sut.roadAdjacencyMatrix);
+		//System.out.println(sut.roadAdjacencyMatrix);
+		
 
 		// should read in 18 bidirectional roads - so there should be 36 geometries
 		assert(sut.roadLayer.getGeometries().size() == 36);
+		
+		// in the dummy version there are 4 roads connecting 5 nodes - so there should be 8 geometries
+		assert(sut2.roadLayer.getGeometries().size() == 8);
+		assert(sut2.roadNodes.size() == 5);
 
 		// roads default to being open
 		for(Object o: sut.roadLayer.getGeometries()) {
 			MasonGeometry mg = (MasonGeometry) o;
 			assert(mg.getStringAttribute("open").equals("OPEN"));
 		}
+		
+		for(Object o: sut2.roadLayer.getGeometries()) {
+			MasonGeometry mg = (MasonGeometry) o;
+			assert(mg.getStringAttribute("open").equals("OPEN"));
+		}
 
 	}
+	
 }

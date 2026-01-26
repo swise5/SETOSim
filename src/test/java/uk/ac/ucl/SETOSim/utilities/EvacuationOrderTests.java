@@ -13,6 +13,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 import sim.field.geo.GeomVectorField;
 import sim.util.Bag;
+import sim.util.geo.MasonGeometry;
 import uk.ac.ucl.SETOSim.myobjects.Person;
 import uk.ac.ucl.SETOSim.myobjects.PersonTests;
 import uk.ac.ucl.SETOSim.myobjects.TakamatsuBehaviour;
@@ -22,6 +23,7 @@ public class EvacuationOrderTests {
 
 	public static String testingDirectory = "data/testing/";
 	public static String roadNames = "simplisticRoads.shp";
+	public static String buildingNames = "simplisticBuildings.shp";
 	public static String evacuationAreasUntimed = "simplisticEvacuationAreasUntimed.shp";
 	public static String evacuationAreasTimed = "simplisticEvacuationAreasTimed.shp";
 	public static String evacuationScenarioName = "simplisticEvacuationScenario.csv";
@@ -65,6 +67,9 @@ public class EvacuationOrderTests {
 		world.params.sheltersFilename = "simplisticShelters.shp";
 		world.setupShelters();
 
+		world.buildingLayer = InputCleaning.readInVectorLayer(world.params.formatInputFilename(buildingNames), 
+				world.params.grid_width, world.params.grid_height, "buildings", new Bag());
+		
 		return world;
 	}
 	
@@ -78,6 +83,7 @@ public class EvacuationOrderTests {
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
 		world.params.evacuationScenarioFilename = null;
+		world.params.evacuationPolicy_verticalEvacuation = false;
 		
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0), null);
@@ -110,7 +116,8 @@ public class EvacuationOrderTests {
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasTimed);
 		world.params.evacuationScenarioFilename = null;
-		
+		world.params.evacuationPolicy_verticalEvacuation = false;
+
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0));
 		p1.setActivityNode(world.behaviourFramework.getEntryPoint());
@@ -140,7 +147,8 @@ public class EvacuationOrderTests {
 		// load the world
 		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
 		world.params.evacuationScenarioFilename = evacuationScenarioName;
-		
+		world.params.evacuationPolicy_verticalEvacuation = false;
+
 		// create agents
 		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(0, 0), 15); // 15 * 5 = 75 yo - senior/dependent
 		p1.setActivityNode(world.behaviourFramework.getEntryPoint());
@@ -175,4 +183,47 @@ public class EvacuationOrderTests {
 
 	}
 	
+	//
+	// VERTICAL EVACUATION
+	//
+	
+	@Test
+	/**
+	 * Make sure they actually evacuate
+	 */
+	public void PeopleInTallBuildingsEvacuateVertically() {
+		// SETUP 
+		// load the world
+		TakamatsuSim world = setupEvacuationOrderWorld(evacuationAreasUntimed);
+		world.params.evacuationScenarioFilename = evacuationScenarioName;
+		
+		// create agents
+		Person p1 = PersonTests.createDummyPerson(world, 1, new Coordinate(-5, 10));
+		p1.setActivityNode(world.behaviourFramework.getEntryPoint());
+		p1.beginEvacuating(0);
+		
+		Person p2 = PersonTests.createDummyPerson(world, 2, new Coordinate(0, 10));
+		p2.setActivityNode(world.behaviourFramework.getEntryPoint());
+		p2.beginEvacuating(0);
+		
+		ArrayList <Person> people = new ArrayList <Person> ();
+		people.add(p1); people.add(p2);
+		
+		// SUT
+		world.scheduleEvacuationOrders();
+		SchedulingTests.runScheduleUntilTime(world, 600); // 10 hours
+		
+		// TESTING
+		HashMap <String, String> p1_record = evacRecordParser(p1.getEvacuationRecord());
+		HashMap <String, String> p2_record = evacRecordParser(p2.getEvacuationRecord());
+		
+		// p1 should end up evacuating vertically
+		assert(p1.geometry.getCoordinate().distance(new Coordinate(-5, 10)) <= world.params.resolution); // in the right place?
+		assert(p1.getEvacuationRecord().contains("VERTICAL"));
+		
+		// ...and p2 should evacuate horizontally
+		assert(p2.geometry.getCoordinate().distance(new Coordinate(0, 0)) <= world.params.resolution); // in the right place?
+		assert(! p2.getEvacuationRecord().contains("VERTICAL"));
+	}
+
 }

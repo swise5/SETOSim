@@ -1,0 +1,16 @@
+dirName: /Users/swise/Projects/hitomi/data/HICSS2025/
+agentFilename: synthPop_kagawaHHs.txt
+roadInundationColumnName: A31b_201
+roadsFilename: roads_with_inundation_16hagibis.shp
+floodedFilename: roads_with_inundation_16hagibis.shp
+compliance: 1
+percIgnored: 0.99
+sheltersFilename: sheltersWithParking.shp
+outputPrefix: okazaki_hicss2025_
+buildingsFilename: buildings_reproj.shp
+buildingUniqueCodeColname: gml_id
+evacuationAreasFilename: evacuationOrders_HICSS2025.shp
+evacuationScenarioFilename: dummyEmptyScenario.csv
+roadInundationImpassableDepth: 10.0
+forecastArrivalTime: 900
+waterFilename: waterBaselayer.shp

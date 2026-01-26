@@ -27,7 +27,7 @@ public class EvacuationDecisionTests {
 
 	public static String testingDirectory = "data/testing/";
 	
-	public void everyoneGetsInVehicleToEvacuate() {
+	public void EveryoneGetsInVehicleToEvacuate() {
 		
 		// create world, set up the pathfinder, and pull out two nodes
 		TakamatsuSim world = SpatialTests.setupTestingWorldWithRoads(testingDirectory, "simplisticRoads.shp", 1);
