@@ -54,7 +54,16 @@
     - Scenario where Level 2 (L2) is predicted and evacuation orders are issued accordingly, but Level 1 (L1) inundation actually occurs.
     - 10% of voluntary evacuees
     - Additional evacuation order issued for residents near the Otogawa River.
-
+- L2-L2-10-N.csv
+    - accurate-L2 scenario
+    - Scenario where Level 2 (L2) is predicted and evacuation orders are issued accordingly, and Level 2 (L2) inundation actually occurs.
+    - 10% of voluntary evacuees
+- L2-L2-10-B.csv
+    - accurate-L2 scenario
+    - Scenario where Level 2 (L2) is predicted and evacuation orders are issued accordingly, and Level 2 (L2) inundation actually occurs.
+    - 10% of voluntary evacuees
+    - Additional evacuation order issued for residents near the Otogawa River.
+      
 ## Evacuation order area
 - file name: EvacuationOrderArea.shp
 - The data can be merged with XX-YY-ZZ-*.csv file by key = 'area_ID'(many-to-many matching)
