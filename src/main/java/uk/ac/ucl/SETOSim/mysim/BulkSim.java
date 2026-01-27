@@ -54,7 +54,7 @@ public class BulkSim {
 */
 		
 		String paramFile = "src/main/resources/params_default.txt";
-		Boolean [] verticalEvac = {true, false};
+		Boolean [] verticalEvac = {false};
 		
 		for(Boolean b: verticalEvac) {
 			String [] bits = paramFile.split("/");
@@ -64,8 +64,8 @@ public class BulkSim {
 			else
 				scenarioName += "_noVertEvac";
 			
-			for(int i = 0; i < 15; i++) {
-				runInstanceFromParamFile(i, paramFile, scenarioName, 24 * 60);
+			for(int i = 20; i < 40; i++) {
+				runInstanceFromParamFile(i, paramFile, scenarioName, 60, b);
 			}
 		}
 	}
@@ -118,14 +118,15 @@ public class BulkSim {
 
 	}
 	
-	public static void runInstanceFromParamFile(int seed, String paramFileName, String stubOutputName, int time) {
+	public static void runInstanceFromParamFile(int seed, String paramFileName, String stubOutputName, int time, boolean vertEvac) {
 		
 		TakamatsuSim takamatsuModel = new TakamatsuSim(seed, paramFileName);
 
 		//String moddedFloodFilename = floodFilename.replace("/", "-");
-		String outputFilename = "/Users/swise/Projects/hitomi/data/transit/output/out_" + stubOutputName;
+		String outputFilename = "/Users/swise/Projects/hitomi/data/transit/output/results/out_" + stubOutputName;
 		
 		takamatsuModel.params.outputPrefix = outputFilename;
+		takamatsuModel.params.verticalEvacEnabled = vertEvac;
 	
 		takamatsuModel.start();
 

@@ -64,6 +64,7 @@ public class Person extends TrafficAgent {
 	
 	EvacuationPlan myPlan = null;
 	String evacuationRecord = null;
+	double holdTime = -1;
 	//int evacuating = TakamatsuBehaviour.notEvacuating;
 //	boolean evacuatingCompleted = false;
 //	double evacuatingTime = -1;
@@ -159,6 +160,7 @@ public class Person extends TrafficAgent {
 		if(work != null)
 			this.work = new Coordinate(work.x, work.y);//(Coordinate)work.clone();
 		
+		this.addIntegerAttribute("status", 0);
 	}
 	
 	
@@ -189,7 +191,6 @@ public class Person extends TrafficAgent {
 	//	else if(isEvacuating()) {
 			delta = currentAction.next(this, time);
 	//	}
-		
 //
 /*		System.out.println(time + "\t" + this.myID + ":\t" + this.geometry.getCoordinate() + "\t" + this.node.toString() + this.edge.toString());
 		if(this.path != null) {
@@ -409,6 +410,8 @@ public class Person extends TrafficAgent {
 		}
 */
 		if( evacuationRecord != null && evacuationRecord.contains("BEGIN_EVACUATING"))
+			return false;
+		else if(! shouldIEvacuate())
 			return false;
 		
 		updateEvacRecord("BEGIN_EVACUATING:"+time);
@@ -835,7 +838,7 @@ public class Person extends TrafficAgent {
 	// GETTERS AND SETTERS
 	//
 	
-	public boolean evacuatingCompleted() {return this.evacuationRecord != null && evacuationRecord.endsWith("DONE:");}
+	public boolean evacuatingCompleted() {return this.evacuationRecord != null && evacuationRecord.contains(",DONE:");}
 	public String getMyID(){ return this.myID; }	
 	public int getAge(){ return this.age; }
 	public String getHistory(){ return this.myHistory; }
@@ -924,6 +927,10 @@ public class Person extends TrafficAgent {
 	
 	public void updateEvacRecord(String flag, double time) {
 		updateEvacRecord(flag + ":" + (int) time);
+	}
+
+	public void updateMyStatus(Integer i) {
+		this.addIntegerAttribute("status", i);
 	}
 	
 	public int hashCode(){ return hash; }

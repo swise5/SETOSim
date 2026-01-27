@@ -9,3 +9,8 @@
 build
 
 data/okazakiDemo/evac*
+data/okazakiDemo/*
+data/*/synthPop*
+data/takamatsuTsunamiDemo/*
+src/python/*.jpg
+src/python/*.zip

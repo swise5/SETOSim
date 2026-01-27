@@ -4,6 +4,9 @@ import uk.ac.ucl.SETOSim.myobjects.Person.MovementOutcome;
 import uk.ac.ucl.SETOSim.mysim.Params;
 import uk.ac.ucl.SETOSim.mysim.TakamatsuSim;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import com.vividsolutions.jts.geom.Coordinate;
 
 import sim.engine.Steppable;
@@ -21,9 +24,14 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 	// evacuating nodes
 	BehaviourNode evacuatingNode = null, preparingToEvacuateNode = null, trappedNode = null, shelteringNode = null, 
 			travelToHomeShelteringNode = null, evacuatedNode = null, travelToDependentNode = null, escortDependentNode = null;
+
+	ArrayList <BehaviourNode> allNodes;
 	
 	public TakamatsuBehaviour(TakamatsuSim ts){
 		world = ts;
+		allNodes = new ArrayList<>(Arrays.asList(homeNode, travelToWorkNode, travelToHomeNode,
+				evacuatingNode, preparingToEvacuateNode, trappedNode, shelteringNode, travelToHomeShelteringNode, evacuatedNode,
+				travelToDependentNode, escortDependentNode));
 		
 		homeNode = new BehaviourNode(){
 
@@ -230,6 +238,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 		
 		preparingToEvacuateNode = new BehaviourNode(){
 
+			int statusCode = 1;
+			
 			@Override
 			public String getTitle() { return "Preparing"; }
 
@@ -242,11 +252,15 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				Person p = (Person) s;
 
 				// if the person has just begun preparing, wait to activate them again!
-				if(!p.prepared) {
-					p.prepared = true; // now they have taken this step!
+				if(p.holdTime == -1) {
+					p.holdTime = time + Params.preparation_time + Params.rayleighDistrib(world.random.nextDouble()); // now they have taken this step!
+					p.updateMyStatus(statusCode);
 					
 					// prepare for some amount of time before checking in again
-					return Params.preparation_time + Params.rayleighDistrib(world.random.nextDouble());
+					return p.holdTime;
+				}
+				else if(p.holdTime > time) {
+					return Double.MAX_VALUE; // not yet!!!
 				}
 
 				// otherwise, they are ready to take the next step, which is either
@@ -297,6 +311,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 		
 		evacuatingNode = new BehaviourNode(){
 
+			int statusCode = 2;
+			
 			@Override
 			public String getTitle() { return "Evacuating"; }
 
@@ -312,6 +328,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				// if this is the first tick the Person is evacuating, set everything up!
 				// =======
 				
+				p.updateMyStatus(statusCode);
+
 				if(p.evacuationRecord == null) {
 					
 					// store the current simulation time in the attribute
@@ -329,6 +347,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 								// it is! They should switch immediately to having evacuated, and not do anything further.
 								p.updateEvacRecord("VERTICAL_EVACUATION", time);
 								p.setActivityNode(evacuatedNode);
+								p.updateMyStatus(3); // EVACUATED STATUS - 3
+
 								return 1; // check in again at the next step
 								
 						}
@@ -488,6 +508,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 		
 		evacuatedNode = new BehaviourNode(){
 
+			int statusCode = 3;
+			
 			@Override
 			public String getTitle() { return "Evacuated"; }
 
@@ -498,7 +520,9 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 			public double next(Steppable s, double time) {
 
 				Person p = (Person) s;
-				
+
+				p.updateMyStatus(statusCode);
+
 				// make sure they've not already finished, only to have this refire somehow.
 				if(p.evacuationRecord.contains("FINISH_EVAC"))
 					return Double.MAX_VALUE;
@@ -506,6 +530,7 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				p.removeFromEdge();
 				p.updateEvacRecord("FINISH_EVAC", time);
 				p.updateEvacRecord("DONE", time);
+				p.updateMyStatus(statusCode);
 				
 //				if(p.evacuatingTime > 0)
 //					p.evacuatingTime = time - p.evacuatingTime;
@@ -548,6 +573,7 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 							world.getMaxBuildingHeightHere(p.geometry) >= world.params.verticalEvacMinHeightRequirement) {
 						p.setActivityNode(evacuatedNode);
 						p.updateEvacRecord("VERTICAL_EVACUATION_UNDERTAKEN", time);
+						p.updateMyStatus(5); // VERTICAL EVACUATION STATUS - 5
 						return 1;
 					}
 					
@@ -617,7 +643,9 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 					p.updateEvacRecord("DONE", time);
 //					if(p.evacuatingTime > 0)
 //						p.evacuatingTime = time - p.evacuatingTime;
-					
+
+					p.updateMyStatus(6); // SHELTER IN PLACE STATUS - 6
+
 					if(p.dependentOf != null)
 						System.out.println("nooo don't come visit");
 					return Double.MAX_VALUE;
@@ -630,6 +658,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 		
 		trappedNode = new BehaviourNode(){
 
+			int statusCode = 4;
+			
 			@Override
 			public String getTitle() { return "Trapped"; }
 
@@ -643,6 +673,8 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 				p.updateEvacRecord("TRAPPED", time);
 				p.updateEvacRecord("DONE", time);
 
+				p.updateMyStatus(statusCode);
+				
 				p.setSpeed(0);
 				
 				if(p.world.verbose)
@@ -801,4 +833,13 @@ public class TakamatsuBehaviour implements BehaviourFramework {
 		return homeNode;
 		
 	}
+	
+	public BehaviourNode getTrapped() {
+		return trappedNode;
+	}
+	
+	public ArrayList <BehaviourNode> getAllNodes(){
+		return allNodes;
+	}
+	
 }

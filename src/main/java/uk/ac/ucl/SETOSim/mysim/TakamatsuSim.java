@@ -128,6 +128,7 @@ public class TakamatsuSim extends SimState {
 	public HashMap <Shelter, ArrayList <Integer>> shelterReport = new HashMap <Shelter, ArrayList <Integer>> ();
 
 	ArrayList <Person> tracked = new ArrayList <Person> ();
+	public HashSet <String> possibleStatuses;
 	
 	/////////////// END Containers ///////////////////////////////////////
 
@@ -255,6 +256,11 @@ public class TakamatsuSim extends SimState {
 			// first set up BehaviourFramework
 			behaviourFramework = new TakamatsuBehaviour(this);
 			
+			// collect all of the possible statuses
+/*			possibleStatuses = new HashSet <String> ();
+			behaviourFramework.getAllNodes().forEach(
+					(e) -> {possibleStatuses.add(e.getTitle());});
+*/			
 			setupPersons();
 
 			//InputCleaning.readInVectorLayer(namesLayer, params.dirName + regionalNamesFilename, "name", new Bag());
@@ -419,7 +425,9 @@ public class TakamatsuSim extends SimState {
 					p.setInundated(true, time);
 					p.updateEvacRecord("FLOOD_PROMPTED_AT:" + (int) time);
 					//p.beginEvacuating((TakamatsuSim) arg0); 
-					arg0.schedule.scheduleOnce(p);
+					if(! p.evacuatingCompleted())
+						p.setActivityNode(behaviourFramework.getTrapped());
+						p.updateMyStatus(4);
 				}
 				
 				Envelope mbrCopy = new Envelope(MBR);

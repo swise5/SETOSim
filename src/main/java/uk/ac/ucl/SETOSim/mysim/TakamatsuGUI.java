@@ -29,6 +29,7 @@ import sim.portrayal.DrawInfo2D;
 import sim.portrayal.FieldPortrayal2D;
 import sim.util.Bag;
 import sim.util.gui.SimpleColorMap;
+import sim.util.gui.NumberTextField;
 import sim.util.media.chart.TimeSeriesChartGenerator;
 import uk.ac.ucl.swise.disasters.Wildfire;
 import uk.ac.ucl.swise.visualization.AttributePolyPortrayal;
@@ -91,7 +92,7 @@ public class TakamatsuGUI extends GUIState {
 		
 		TakamatsuSim world = (TakamatsuSim) state;
 		water.setField(world.waterLayer);
-		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250), true));
+		water.setPortrayalForAll(new GeomPortrayal(new Color(180,200,250,150), true));
 		//water.setImmutableField(true);
 		
 		roads.setField(world.roadLayer);
@@ -103,9 +104,17 @@ public class TakamatsuGUI extends GUIState {
 		buildings.setImmutableField(true);
 		
 		agents.setField(world.agentsLayer);
+		Color [] colorTable = new Color [] {new Color(200, 200, 200, 5), // 0 - default!
+				new Color(255,217,47, 200),		// 1 - preparing
+				new Color(252,141,98, 200), 		// 2 - evacuating
+				new Color(102,194,165, 200),		// 3 - evacuated
+				new Color(231,138,195, 200),		// 4 - trapped
+				new Color(166,216,84, 200), 		// 5 - vertical evac
+				new Color(141,160,203, 200)		// 6 - shelter in place
+		};
 		agents.setPortrayalForAll( new AttributePolyPortrayal(
-				new SimpleColorMap(Params.speed_pedestrian,Params.speed_vehicle, new Color(255,0,0,20), new Color(0,0,255,100)),
-				"speed", new Color(0,0,0,0), true, 40));
+				new SimpleColorMap(colorTable),
+				"status", new Color(0,0,0,0), true, 5));
 		
 		shelters.setField(world.shelterLayer);
 		shelters.setPortrayalForAll(new GeomPortrayal(new Color(255,255,0), 20));
@@ -135,7 +144,7 @@ public class TakamatsuGUI extends GUIState {
 		// reset stuff
 		// reschedule the displayer
 		display.reset();
-		display.setBackdrop(new Color(200,250,240));
+		display.setBackdrop(new Color(20,20,20));
 
 		// redraw the display
 		display.repaint();

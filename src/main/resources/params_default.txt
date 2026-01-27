@@ -1,8 +1,8 @@
 dirName: data/takamatsuTsunamiDemo/
-agentFilename: synthPop_hh.txt
+agentFilename: synthPop_hh_1769409280626.txt
 roadsFilename: roads_simple.shp
 floodedFilename: flooded_reproj.shp
-percIgnored: 0.8
+percIgnored: 0.0
 sheltersFilename: sheltersWithParking.shp
 outputPrefix: tsunamiTesting_2026workshop_
 buildingsFilename: buildings_final.shp
