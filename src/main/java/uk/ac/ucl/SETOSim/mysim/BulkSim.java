@@ -54,7 +54,7 @@ public class BulkSim {
 */
 		
 		String paramFile = "src/main/resources/params_default.txt";
-		Boolean [] verticalEvac = {false};
+		Boolean [] verticalEvac = {true};
 		
 		for(Boolean b: verticalEvac) {
 			String [] bits = paramFile.split("/");
