@@ -13,4 +13,4 @@ forecastArrivalTime: 60
 forecastNoticePeriod: 60
 waterFilename: water_flat.shp
 rayleigh_sigma: 10.0
-preparation_time: 30.0
+preparation_time: 40.0

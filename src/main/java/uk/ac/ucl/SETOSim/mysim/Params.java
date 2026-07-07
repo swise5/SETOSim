@@ -38,7 +38,7 @@ public class Params {
 	
 	// SPEED
 
-	public boolean ageSpecificSpeeds = false;
+	public boolean ageSpecificSpeeds = true;
 
 	// define speeds in terms of TICKS 
 	// or here, meters per second - so convert to 1-min tick

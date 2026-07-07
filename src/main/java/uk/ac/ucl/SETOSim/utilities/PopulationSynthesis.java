@@ -181,27 +181,31 @@ public class PopulationSynthesis {
 		//
 		// Generate the households
 		//
-		
+
+		ArrayList <Agent> allIndividuals = null;
+		ArrayList<ArrayList<Agent>> allHouseholds = null;
+
 		if(demoFilename.endsWith(".shp"))
 		{
 			// process for each unit of geometry
 			GeomVectorField populationGrid = readInVectors(formatInputFilename(demoFilename));
-			ArrayList<ArrayList<Agent>> allHouseholdsInRegion = new ArrayList<ArrayList<Agent>>(); 
+			ArrayList<ArrayList<Agent>> allHouseholdsInRegion = null; 
 			
 			ArrayList <Double> fitOfHhldsTot = new ArrayList <Double> (), 
 					fitOfHhldsMin = new ArrayList <Double> (), 
 					fitOfHhldsEld = new ArrayList <Double> ();					
+			
 			
 			for(Object o: populationGrid.getGeometries()) {
 				
 				MasonGeometry myDistrict = (MasonGeometry) o;
 				
 				double [] ageSex = getAgeSexConstraintsFromShapefile(myDistrict);
-				ArrayList <Agent> allIndividuals = generateIndividualsFromShapefile(ageSex);
+				allIndividuals = generateIndividualsFromShapefile(ageSex);
 				
 				if(allIndividuals == null) continue;
 				
-				ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals, myDistrict.getDoubleAttribute("TotHhld"));
+				allHouseholdsInRegion = generateHouseholds(allIndividuals, myDistrict.getDoubleAttribute("TotHhld"));
 				
 				// try to find houses within the district
 				candidateHouses = new HashSet <MasonGeometry> (buildings.getCoveredObjects(myDistrict));
@@ -216,26 +220,26 @@ public class PopulationSynthesis {
 					continue;
 				}
 				
-				assignHouseholdsToHouses(allHouseholds, candidateHouses);
+				assignHouseholdsToHouses(allHouseholdsInRegion, candidateHouses);
 				
-				allHouseholdsInRegion.addAll(allHouseholds);
+				allHouseholds.addAll(allHouseholdsInRegion);
 				
-				double [] fits = shapefileHouseholdsFit(myDistrict, allHouseholds);
+				double [] fits = shapefileHouseholdsFit(myDistrict, allHouseholdsInRegion);
 				fitOfHhldsTot.add(fits[0]); fitOfHhldsMin.add(fits[1]); fitOfHhldsEld.add(fits[2]);
 			}
 			
 			System.out.println(fitOfHhldsTot.toString());
 			System.out.println(fitOfHhldsMin.toString());
 			System.out.println(fitOfHhldsEld.toString());
-	//		writeOutHouseholds(allHouseholdsInRegion);
+			writeOutHouseholds(allHouseholds);
 		}
 		else {
 			// generate the individuals and assemble them into households
-			ArrayList <Agent> allIndividuals  = generateIndividuals();
+			allIndividuals  = generateIndividuals();
 			if (allIndividuals == null)
 				return;
 				
-			ArrayList<ArrayList<Agent>> allHouseholds = generateHouseholds(allIndividuals);
+			allHouseholds = generateHouseholds(allIndividuals);
 				
 			assignHouseholdsToHouses(allHouseholds, candidateHouses);
 			
@@ -249,23 +253,27 @@ public class PopulationSynthesis {
 
 		}
 
-/* TODO add meeeeee
-		ArrayList <Agent> noAssignedHome = new ArrayList <Agent> ();
-		for(Agent a: individuals){
-			if(a.home == null)
-				noAssignedHome.add(a);
+		try {
+			ArrayList <Agent> noAssignedHome = new ArrayList <Agent> ();
+			for(Agent a: allIndividuals){
+				if(a.home == null)
+					noAssignedHome.add(a);
+			}
+				
+			ArrayList <ArrayList<Agent>> emptyHouseholds = new ArrayList <ArrayList <Agent>> ();
+			for(ArrayList <Agent> household: allHouseholds){
+				if(household.size() == 0) 
+					emptyHouseholds.add(household);
+			}
+			allHouseholds.removeAll(emptyHouseholds);
+				
+			allIndividuals.removeAll(noAssignedHome);
+		} catch(Exception e) {
+			
 		}
+
 			
-		ArrayList <ArrayList<Agent>> emptyHouseholds = new ArrayList <ArrayList <Agent>> ();
-		for(ArrayList <Agent> household: households){
-			if(household.size() == 0) 
-				emptyHouseholds.add(household);
-		}
-		households.removeAll(emptyHouseholds);
-			
-		allIndividuals.removeAll(noAssignedHome);
-			
-	*/			
+		
 //		ArrayList <Agent> socialMediaUsers = getSocialMediaUsers(allIndividuals);
 
 		//System.out.println("Finished with picking social media users");

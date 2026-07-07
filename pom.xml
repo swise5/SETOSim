@@ -75,8 +75,8 @@
 	          <finalName>ServiceCreate</finalName>
 	          <appendAssemblyId>false</appendAssemblyId>
 	          <archive>
-	            <manifest>
-	              <mainClass>uk.ac.ucl.protecs.sim.WorldBankCovid19Sim</mainClass>
+	            <manifest>package 
+	              <mainClass>uk.ac.ucl.SETOSim.mysim.TakamatsuSim</mainClass>
 	            </manifest>
 	          </archive>
 	          <descriptorRefs>
